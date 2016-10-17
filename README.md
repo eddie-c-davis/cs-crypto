@@ -1,2 +1,3 @@
-# cs-crypto
-CS597-Project
+# shanks
+Shank's Baby-Step Giant-Step Algorithm for CS597
+
