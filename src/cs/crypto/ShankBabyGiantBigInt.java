@@ -41,9 +41,6 @@ public class ShankBabyGiantBigInt {
             BigInteger bigI = BigInteger.valueOf(i);
 
             // Compute baby step...
-            //BigInteger exp = g.pow((int) i);
-            //BigInteger exp = MyBigInt.squareAndMultiply(g, i);
-
             BigInteger exp;
             if (useSAM) {
                 exp = MyBigInt.squareAndMultiply(g, i);
@@ -57,9 +54,6 @@ public class ShankBabyGiantBigInt {
 
             // Compute giant step...
             exp = BigInteger.valueOf((i + 1) * m);
-
-            //BigInteger gStep = g.modPow(exp, p);
-            //BigInteger gStep = MyBigInt.squareAndMultiply(g, exp, p);
 
             BigInteger gStep;
             if (useSAM) {

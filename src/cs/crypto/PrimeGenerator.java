@@ -2,6 +2,7 @@ package cs.crypto;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.util.Random;
 
 import org.bouncycastle.crypto.generators.DHParametersGenerator;
 import org.bouncycastle.crypto.params.DHParameters;
@@ -13,9 +14,12 @@ public class PrimeGenerator {
     private static final int DEFAULT_SIZE = 32;
     private static final int DEFAULT_CERTAINTY = 90;
 
+    private int nBits;
+
     private BigInteger g;
     private BigInteger h;
     private BigInteger p;
+    private BigInteger q;
 
     private DHParameters dhParams;
     private SecureRandom rand;
@@ -40,7 +44,9 @@ public class PrimeGenerator {
         dhParams = dhParamGen.generateParameters();
         g = dhParams.getG();
         p = dhParams.getP();
+        q = dhParams.getQ();
         h = BigInteger.ZERO;
+        nBits = size;
     }
 
     public BigInteger getG() {
@@ -60,4 +66,10 @@ public class PrimeGenerator {
     public BigInteger getP() {
         return p;
     }
+    public BigInteger getQ() {
+        return q;
+    }
+
+    public Random getRand() { return rand; }
+    public int getSize() { return nBits; }
 }
