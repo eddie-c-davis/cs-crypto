@@ -8,6 +8,9 @@ import javax.xml.bind.DatatypeConverter;
  * Created by edavis on 10/4/16.
  */
 public class ElgamalUser implements User {
+    private static final int DEFAULT_BITLEN = 128;
+    private static final int DEFAULT_CERTAINTY = 90;
+
     private String _name;
     private int _bitLen;
     private PrimeGenerator _pGen;
@@ -28,13 +31,13 @@ public class ElgamalUser implements User {
     }
 
     public ElgamalUser(String name) {
-        this(name, 20);
+        this(name, DEFAULT_BITLEN);
     }
 
     public ElgamalUser(String name, int bitLen) {
         _name = name;
         _bitLen = bitLen;
-        _pGen = new PrimeGenerator(_bitLen, 100);
+        _pGen = new PrimeGenerator(_bitLen, DEFAULT_CERTAINTY);
     }
 
     public void init() {
@@ -85,7 +88,7 @@ public class ElgamalUser implements User {
     public void send(ElgamalUser receiver, String message) {
         byte[] mBytes = message.getBytes();
         //byte[] mBytes = DatatypeConverter.parseBase64Binary(message);
-        BigInteger m = (new BigInteger(1, mBytes)).mod(_prime);
+        BigInteger m = (new BigInteger(1, mBytes)).mod(receiver.prime());
 
         send(receiver, m);
     }
@@ -106,7 +109,6 @@ public class ElgamalUser implements User {
         BigInteger c1 = _gen.modPow(r, _prime);
         BigInteger secKey = pubKey.modPow(r, _prime);
 
-
         BigInteger c2 = m.multiply(secKey).mod(_prime);
 
         receiver.receive(this, c1, c2);
@@ -123,10 +125,9 @@ public class ElgamalUser implements User {
         BigInteger mPrime = c2.multiply(secInv).mod(_prime);
 
         // We are good up to here, but mPrime.toByteArray does not return same bytes as String.getBytes...
-        byte[] mBytes = mPrime.toByteArray();
-        String message = new String(mBytes);
+        //byte[] mBytes = mPrime.toByteArray();
+        //String message = new String(mBytes);
         //String message = DatatypeConverter.printBase64Binary(mBytes);
-        int stop = 1;
 
         return mPrime;
     }

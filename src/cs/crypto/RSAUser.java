@@ -56,10 +56,18 @@ public class RSAUser implements User {
     }
 
     public RSAUser(String name, long p, long q, long e) {
+        this(name, BigInteger.valueOf(p), BigInteger.valueOf(q), BigInteger.valueOf(e));
+    }
+
+    public RSAUser(String name, BigInteger p, BigInteger q) {
+        this(name, p, q, BigInteger.ZERO);
+    }
+
+    public RSAUser(String name, BigInteger p, BigInteger q, BigInteger e) {
         _name = name;
-        _p = BigInteger.valueOf(p);
-        _q = BigInteger.valueOf(q);
-        _e = BigInteger.valueOf(e);
+        _p = p;
+        _q = q;
+        _e = e;
 
         if (_p.bitLength() > 0) {
             _bitLen = _p.bitLength();
@@ -170,7 +178,7 @@ public class RSAUser implements User {
         _msg = new String(mBytes);
         //String message = DatatypeConverter.printBase64Binary(mBytes);
 
-        System.out.println(String.format("%s: received %s from %s.", _name, m.toString(), sender.getName()));
+        System.out.println(String.format("%s: Received %s from %s.", _name, m.toString(), sender.getName()));
 
         return m;
     }

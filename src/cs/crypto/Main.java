@@ -9,8 +9,12 @@ public class Main {
         } else {
             long t_i = System.nanoTime();
 
-            //elgamalTest(args);      // Elgamal test
-            rsaTest(args);            // RSA test
+            char encSys = args[0].charAt(0);
+            if (encSys == 'R' || encSys == 'r') {
+                rsaTest(args);            // RSA test
+            } else {
+                elgamalTest(args);      // Elgamal test
+            }
 
             long t_r = (System.nanoTime() - t_i) / 1000000L;
             System.out.println(String.format("Runtime: %d ms", t_r));
@@ -18,35 +22,30 @@ public class Main {
     }
 
     private static void elgamalTest(String[] args) {
-        ElgamalUser bob = new ElgamalUser("Bob");
+        int bitLen = 1024;
+        if (args.length > 1) {
+            bitLen = Integer.parseInt(args[1]);
+        }
+
+        ElgamalUser bob = new ElgamalUser("Bob", bitLen);
         bob.init();
 
-        ElgamalUser alice = new ElgamalUser("Alice");
+        ElgamalUser alice = new ElgamalUser("Alice", bitLen);
         alice.send(bob, "Hello!");
     }
 
     private static void rsaTest(String[] args) {
-        long x = 0;
-        if (args.length > 0) {
-            x = Long.parseLong(args[0]);
-        }
+        // Parameters from book...
+        // p = E0DFD2C2A288ACEBC705EFAB30E4447541A8C5A47A37185C5A9CB98389CE4DE19199AA3069B404FD98C801568CB9170EB712BF10B4955CE9C9DC8CE6855C6123h
+        // q = EBE0FCF21866FD9A9F0D72F7994875A8D92E67AEE4B515136B2A778A8048B149828AEA30BD0BA34B977982A3D42168F594CA99F3981DDABFAB2369F229640115h
+        // e = 40B028E1E4CCF07537643101FF72444A0BE1D7682F1EDB553E3AB4F6DD8293CA1945DB12D796AE9244D60565C2EB692A89B8881D58D278562ED60066DD8211E67315CF89857167206120405B08B54D10D4EC4ED4253C75FA74098FE3F7FB751FF5121353C554391E114C85B56A9725E9BD5685D6C9C7EED8EE442366353DC39h
 
-        long p = 0;
-        if (args.length > 1) {
-            p = Long.parseLong(args[1]);
-        }
+        BigInteger x = MyBigInt.parse(args[1]);
+        BigInteger p = MyBigInt.parse(args[2]);
+        BigInteger q = MyBigInt.parse(args[3]);
+        BigInteger e = MyBigInt.parse(args[4]);
 
-        long q = 0;
-        if (args.length > 2) {
-            q = Long.parseLong(args[2]);
-        }
-
-        long e = 0;
-        if (args.length > 3) {
-            e = Long.parseLong(args[3]);
-        }
-
-        boolean useSAM = (args.length > 4 && args[4].length() > 0);
+        boolean useSAM = (args.length > 5 && args[5].length() > 0);
 
         RSAUser bob = new RSAUser("Bob", p, q, e);
         bob.setSAM(useSAM);

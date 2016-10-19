@@ -112,6 +112,39 @@ public class MyBigInt {
         return res;
     }
 
+    public static BigInteger parse(String input) {
+        BigInteger bigI = BigInteger.ZERO;
+
+        if (input.length() > 0) {
+            int base = 10;
+            char lastChar = input.charAt(input.length() - 1);
+
+            if (lastChar == 'b' || lastChar == 'h' || lastChar == 'o') {
+                input = input.substring(0, input.length() - 1);
+
+                switch (lastChar) {
+                    case 'b':
+                        base = 2;
+                        break;
+                    case 'h':
+                        input = input.toLowerCase();
+                        base = 16;
+                        break;
+                    case 'o':
+                        base = 8;
+                        break;
+                    default:
+                        base = 10;
+                        break;
+                }
+            }
+
+            bigI = new BigInteger(input, base);
+        }
+
+        return bigI;
+    }
+
     public static final MyBigInt ZERO = new MyBigInt(BigInteger.ZERO);
     public static final MyBigInt ONE = new MyBigInt(BigInteger.ONE);
     public static final MyBigInt TEN = new MyBigInt(BigInteger.TEN);
