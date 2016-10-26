@@ -1,5 +1,7 @@
 package cs.crypto;
 
+import org.bouncycastle.jcajce.provider.asymmetric.RSA;
+
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.List;
@@ -9,7 +11,7 @@ import java.util.Random;
 /**
  * Created by edavis on 10/4/16.
  */
-public class RSAUser implements User {
+public class RSAUser implements User, RSACipher {
     private static final int DEFAULT_BITLENGH = 128;
 
     private boolean _useSAM = false;
@@ -111,6 +113,50 @@ public class RSAUser implements User {
         return null; //_attributes;
     }
 
+    public BigInteger encrypt(BigInteger msg, BigInteger[] k) {
+        return encrypt(msg, k[0], k[1]);
+    }
+
+    public BigInteger[] encrypt(BigInteger[] m, BigInteger e, BigInteger n) {
+        BigInteger[] c = new BigInteger[m.length];
+        for (int i = 0; i < m.length; i++) {
+            c[i] = encrypt(m[i], e, n);
+        }
+
+        return c;
+    }
+
+    public BigInteger encrypt(BigInteger m, BigInteger e, BigInteger n) {
+        BigInteger c;
+        if (_useSAM) {
+            c = MyBigInt.squareAndMultiply(m, e, n);
+        } else {
+            c = m.modPow(e, n);
+        }
+
+        return c;
+    }
+
+    public BigInteger decrypt(BigInteger c) {
+        BigInteger m;
+        if (_useSAM) {
+            m = MyBigInt.squareAndMultiply(c, _d, _n);
+        } else {
+            m = c.modPow(_d, _n);
+        }
+
+        return m;
+    }
+
+    public BigInteger[] decrypt(BigInteger[] c) {
+        BigInteger[] m = new BigInteger[c.length];
+        for (int i = 0; i < c.length; i++) {
+            m[i] = decrypt(c[i]);
+        }
+
+        return m;
+    }
+
     public void send(User receiver, String message) {
         send((RSAUser) receiver, message);
     }
@@ -144,19 +190,12 @@ public class RSAUser implements User {
     }
 
     public void send(RSAUser receiver, BigInteger m) {
-        // Get public key from receiver...
-        BigInteger[] pubKey = receiver.publicKey();
-        BigInteger n = pubKey[0];
-        BigInteger e = pubKey[1];
-
         System.out.println(String.format("%s: Sending %s to %s.", _name, m.toString(), receiver.getName()));
 
-        BigInteger c;
-        if (_useSAM) {
-            c = MyBigInt.squareAndMultiply(m, e, n);
-        } else {
-            c = m.modPow(e, n);
-        }
+        // Get public key from receiver...
+        BigInteger c = encrypt(m, receiver.publicKey());
+
+        System.out.println("ciphertext = " + c);
 
         receiver.receive(this, c);
     }
@@ -166,16 +205,11 @@ public class RSAUser implements User {
     }
 
     public BigInteger receive(RSAUser sender, BigInteger c) {
-        BigInteger m;
-        if (_useSAM) {
-            m = MyBigInt.squareAndMultiply(c, _d, _n);
-        } else {
-            m = c.modPow(_d, _n);
-        }
+        BigInteger m = decrypt(c);
 
         // We are good up to here, but mPrime.toByteArray does not return same bytes as String.getBytes...
-        byte[] mBytes = m.toByteArray();
-        _msg = new String(mBytes);
+//        byte[] mBytes = m.toByteArray();
+//        _msg = new String(mBytes);
         //String message = DatatypeConverter.printBase64Binary(mBytes);
 
         System.out.println(String.format("%s: Received %s from %s.", _name, m.toString(), sender.getName()));
@@ -184,7 +218,7 @@ public class RSAUser implements User {
     }
 
     public BigInteger[] publicKey() {
-        return new BigInteger[] {_n, _e};
+        return new BigInteger[] {_e, _n};
     }
 
     public BigInteger getE() { return _e; }

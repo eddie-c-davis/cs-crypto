@@ -5,7 +5,8 @@ import java.math.BigInteger;
 public class Main {
     public static void main(String[] args) {
         if (args.length == 1 && args[0].indexOf('h') >= 0) {
-            System.out.println("usage: rsa <x> <p> <q> [e] [sam]");
+            System.out.println("usage 1: rsa <x> <p> <q> <e> [sam]");
+            System.out.println("usage 2: elgamal <x> <g> <h> <p> [sam]");
         } else {
             long t_i = System.nanoTime();
 
@@ -13,7 +14,7 @@ public class Main {
             if (encSys == 'R' || encSys == 'r') {
                 rsaTest(args);            // RSA test
             } else {
-                elgamalTest(args);      // Elgamal test
+                elgamalTest(args);        // Elgamal test
             }
 
             long t_r = (System.nanoTime() - t_i) / 1000000L;
@@ -22,16 +23,35 @@ public class Main {
     }
 
     private static void elgamalTest(String[] args) {
-        int bitLen = 1024;
-        if (args.length > 1) {
-            bitLen = Integer.parseInt(args[1]);
+        ElgamalUser bob;
+        ElgamalUser alice;
+
+        BigInteger x = MyBigInt.parse(args[1]);
+
+        if (args.length > 4) {
+            BigInteger g = MyBigInt.parse(args[2]);
+            BigInteger h = MyBigInt.parse(args[3]);
+            BigInteger p = MyBigInt.parse(args[4]);
+
+            bob = new ElgamalUser("Bob", g, h, p);
+            alice = new ElgamalUser("Alice", g, h, p);
+
+            boolean useSAM = (args.length > 5 && args[5].length() > 0);
+
+            bob.setSAM(useSAM);
+            alice.setSAM(useSAM);
+        } else {
+            int bitLen = 1024;
+            if (args.length > 2) {
+                bitLen = Integer.parseInt(args[2]);
+            }
+
+            bob = new ElgamalUser("Bob", bitLen);
+            alice = new ElgamalUser("Alice", bitLen);
         }
 
-        ElgamalUser bob = new ElgamalUser("Bob", bitLen);
         bob.init();
-
-        ElgamalUser alice = new ElgamalUser("Alice", bitLen);
-        alice.send(bob, "Hello!");
+        alice.send(bob, x);
     }
 
     private static void rsaTest(String[] args) {
