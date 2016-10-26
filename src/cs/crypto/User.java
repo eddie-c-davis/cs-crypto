@@ -20,4 +20,6 @@ public interface User {
     List<Attribute> getAttributes();
 
     boolean satisfies(Policy policy);
+
+    void authenticate(KeyServer keyServer);
 }

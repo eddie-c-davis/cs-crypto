@@ -135,4 +135,8 @@ public class ElgamalUser extends ElgamalEntity implements User {
         // TODO: Implement based on attributes in policy..
         return false;
     }
+
+    public void authenticate(KeyServer keyServer) {
+        _kPr = keyServer.addUser(keyServer);
+    }
 }

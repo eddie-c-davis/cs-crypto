@@ -4,6 +4,8 @@ import java.math.BigInteger;
 
 public class Main {
     public static void main(String[] args) {
+        peapodTest();
+
         if (args.length == 1 && args[0].indexOf('h') >= 0) {
             System.out.println("usage 1: rsa <x> <p> <q> <e> [sam]");
             System.out.println("usage 2: elgamal <x> <g> <h> <p> [sam]");
@@ -20,6 +22,31 @@ public class Main {
             long t_r = (System.nanoTime() - t_i) / 1000000L;
             System.out.println(String.format("Runtime: %d ms", t_r));
         }
+    }
+
+    private static void peapodTest() {
+        KeyServer keyServer = new KeyServer();
+        ListServer listServer = new ListServer();
+
+        User alice = new ElgamalUser("Alice");
+        User bob = new ElgamalUser("Bob");
+
+        // Initializ key server (generate K).
+        keyServer.init();
+
+        // Authenticate users with KeyServer...
+        alice.authenticate(keyServer);
+        bob.authenticate(keyServer);
+
+        // Register list server with the key server...
+        listServer.register(keyServer);
+
+        // Subscribe users to the list server...
+        listServer.subscribe(alice);
+        listServer.subscribe(bob);
+
+        // Now try sending a message to the server...
+        alice.send(listServer, "Roommate needed...");
     }
 
     private static void elgamalTest(String[] args) {

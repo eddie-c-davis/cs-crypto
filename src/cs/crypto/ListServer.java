@@ -7,38 +7,24 @@ import java.util.List;
 /**
  * Created by edavis on 10/16/16.
  */
-public class ListServer {
+public class ListServer extends ElgamalEntity {
     private static final int DEFAULT_CAPACITY = 100;
-    private static final int DEFAULT_BITLEN = 256;
 
-    private int _bitLen;
+    private KeyServer _keyServer;
 
-    private PrimeGenerator _pGen;
-
-    private BigInteger _gen;
-    private BigInteger _prime;
-    private BigInteger _kPr;
-    private BigInteger _kPub;
-    private BigInteger _K;
-
+    private List<String> _messages;
     private List<User> _subscribers;
-    private List<BigInteger> _decryptKeys;
+    private List<BigInteger> _transKeys;
 
     public ListServer() {
         this(DEFAULT_BITLEN);
     }
 
     public ListServer(int bitLen) {
-        _bitLen = bitLen;
-        _pGen = new PrimeGenerator(_bitLen, 100);
+        super("ListServer", bitLen);
         _subscribers = new ArrayList<>(DEFAULT_CAPACITY);
-    }
-
-    public void init() {
-        _prime = _pGen.getP();
-        _gen = _pGen.getG();
-        _kPr = _pGen.getH();
-        _kPub = _gen.modPow(_kPr, _prime);
+        _messages = new ArrayList<>(DEFAULT_CAPACITY);
+        _decryptKeys = new ArrayList<>(DEFAULT_CAPACITY);
     }
 
     public void receive(User sender, BigInteger cA, BigInteger cB) {
@@ -56,16 +42,26 @@ public class ListServer {
 
             // Calculate cA'' and cB'''
         }
+    }
 
+    public void register(KeyServer keyServer) {
+        _keyServer = keyServer;
+        _keyServer.register(this);
+    }
+
+    public void unregister(KeyServer keyServer) {
+        if (_keyServer == keyServer) {
+            _keyServer = null;
+            _keyServer.unregister(this);
+        }
     }
 
     public void subscribe(User user) {
         if (!_subscribers.contains(user)) {
-            // Compute s_i for new subscriber (transformation secret key)
-
-            // Compute x_i for new subscripber (decryption private key)
-
+            // Get transformation secret key from key server...
+            BigInteger s_i = _keyServer.getTransKey(this, user);
             _subscribers.add(user);
+            _transKeys.add(user);
         }
     }
 
@@ -75,19 +71,7 @@ public class ListServer {
         }
     }
 
-    private BigInteger privateKey() {
-        return _kPr;
-    }
-
-    public BigInteger publicKey() {
+    private BigInteger publicKey() {
         return _kPub;
-    }
-
-    public BigInteger generator() {
-        return _gen;
-    }
-
-    public BigInteger prime() {
-        return _prime;
     }
 }

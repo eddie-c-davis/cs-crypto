@@ -12,6 +12,7 @@ public class ElgamalEntity implements ElgamalCipher {
     protected static final int DEFAULT_CERTAINTY = 90;
 
     protected boolean _useSAM = false;
+    protected boolean _initialized = false;
 
     protected String _name;
     protected int _bitLen;
@@ -60,6 +61,8 @@ public class ElgamalEntity implements ElgamalCipher {
         }
 
         _kPub = _gen.modPow(_kPr, _prime);
+
+        _initialized = true;
     }
 
     public BigInteger[] encrypt(BigInteger m, BigInteger p, BigInteger g, BigInteger k) {
@@ -102,6 +105,10 @@ public class ElgamalEntity implements ElgamalCipher {
 
     protected BigInteger privateKey() {
         return _kPr;
+    }
+
+    public boolean initialized() {
+        return _initialized;
     }
 
     public String getName() {
