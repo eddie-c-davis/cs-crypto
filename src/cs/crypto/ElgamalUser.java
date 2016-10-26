@@ -7,82 +7,28 @@ import javax.xml.bind.DatatypeConverter;
 /**
  * Created by edavis on 10/4/16.
  */
-public class ElgamalUser implements User, ElgamalCipher {
-    private static final int DEFAULT_BITLEN = 128;
-    private static final int DEFAULT_CERTAINTY = 90;
-
-    private boolean _useSAM = false;
-
-    private String _name;
-    private int _bitLen;
-    private PrimeGenerator _pGen;
-
-    private BigInteger _gen;
-    private BigInteger _prime;
-    private BigInteger _kPr;
-    private BigInteger _kPub;
+public class ElgamalUser extends ElgamalEntity implements User {
 
     private List<Attribute> _attributes;
 
     public ElgamalUser() {
-        this("");
+        super("");
     }
 
     public ElgamalUser(int bitLen) {
-        this("", bitLen);
+        super("", bitLen);
     }
 
     public ElgamalUser(String name) {
-        this(name, DEFAULT_BITLEN);
+        super(name, DEFAULT_BITLEN);
     }
 
     public ElgamalUser(String name, int bitLen) {
-        _name = name;
-        _bitLen = bitLen;
-        _pGen = new PrimeGenerator(_bitLen, DEFAULT_CERTAINTY);
+        super(name, bitLen);
     }
 
     public ElgamalUser(String name, BigInteger g, BigInteger h, BigInteger p) {
-        _name = name;
-        _gen = g;
-        _prime = p;
-        _bitLen =  p.bitLength();
-        _kPr = h;
-    }
-
-    public void init() {
-        if (_prime == null) {
-            _prime = _pGen.getP();
-        }
-        if (_gen == null) {
-            _gen = _pGen.getG();
-        }
-        if (_kPr == null) {
-            _kPr = _pGen.getH();
-        }
-
-        _kPub = _gen.modPow(_kPr, _prime);
-    }
-
-    public BigInteger[] encrypt(BigInteger m, BigInteger p, BigInteger g, BigInteger k) {
-        BigInteger one = BigInteger.ONE;
-        BigInteger pm1 = p.subtract(one);
-        BigInteger r = (new RandomBigInt(one, pm1)).get();
-
-        BigInteger c1;
-        BigInteger secKey;
-
-        if (_useSAM) {
-            c1 = MyBigInt.squareAndMultiply(g, r, p);
-            secKey = MyBigInt.squareAndMultiply(k, r, p);
-        } else {
-            c1 = g.modPow(r, p);
-            secKey = k.modPow(r, p);
-        }
-
-        BigInteger c2 = m.multiply(secKey).mod(_prime);
-
-        return new BigInteger[] {c1, c2};
+        super(name, g, h, p);
     }
 
     public void send(ListServer server, String message) {
@@ -181,26 +127,6 @@ public class ElgamalUser implements User, ElgamalCipher {
         return m;
     }
 
-    private BigInteger privateKey() {
-        return _kPr;
-    }
-
-    public String getName() {
-        return _name;
-    }
-
-    public BigInteger publicKey() {
-        return _kPub;
-    }
-
-    public BigInteger generator() {
-        return _gen;
-    }
-
-    public BigInteger prime() {
-        return _prime;
-    }
-
     public List<Attribute> getAttributes() {
         return _attributes;
     }
@@ -208,9 +134,5 @@ public class ElgamalUser implements User, ElgamalCipher {
     public boolean satisfies(Policy policy) {
         // TODO: Implement based on attributes in policy..
         return false;
-    }
-
-    public void setSAM(boolean sam) {
-        _useSAM = sam;
     }
 }
