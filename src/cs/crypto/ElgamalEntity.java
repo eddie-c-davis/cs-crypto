@@ -107,16 +107,16 @@ public class ElgamalEntity implements ElgamalCipher {
         return _kPr;
     }
 
+    public BigInteger publicKey() {
+        return _kPub;
+    }
+
     public boolean initialized() {
         return _initialized;
     }
 
     public String getName() {
         return _name;
-    }
-
-    public BigInteger publicKey() {
-        return _kPub;
     }
 
     public BigInteger generator() {

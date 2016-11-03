@@ -9,15 +9,17 @@ import java.util.List;
 public interface User {
     void init();
 
-    void send(ListServer server, String message);
+    void send(ListServer server, String message) throws MessageException, UserException;
     void send(User receiver, String message);
     void send(User receiver, long m);
     void send(User receiver, BigInteger m);
 
     BigInteger receive(User sender, BigInteger c);
     BigInteger receive(User sender, BigInteger c1, BigInteger c2);
+    BigInteger receive(ListServer server, BigInteger cA, BigInteger cB);
 
     List<Attribute> getAttributes();
+    String getName();
 
     boolean satisfies(Policy policy);
 

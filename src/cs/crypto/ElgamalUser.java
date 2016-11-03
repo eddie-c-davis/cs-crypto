@@ -8,6 +8,7 @@ import javax.xml.bind.DatatypeConverter;
  * Created by edavis on 10/4/16.
  */
 public class ElgamalUser extends ElgamalEntity implements User {
+    private RandomBigInt _rand;
 
     private List<Attribute> _attributes;
 
@@ -31,20 +32,19 @@ public class ElgamalUser extends ElgamalEntity implements User {
         super(name, g, h, p);
     }
 
-    public void send(ListServer server, String message) {
-        _prime = server.prime();
-        _gen = server.generator();
-
-        BigInteger one = BigInteger.ONE;
-        BigInteger pm1 = _prime.subtract(one);
-        BigInteger r = (new RandomBigInt(one, pm1)).get();
-        BigInteger y = server.publicKey();
+    public void send(ListServer server, String message) throws MessageException, UserException {
+        BigInteger x = _kPr;    // x is x_u, the user's private key.
+        BigInteger g = _gen;    // g is the global generator (originating from the key server).
+        BigInteger p = _prime;  // p is our big prime.
+        BigInteger y = g.modPow(x, p);
+        BigInteger r = _rand.get();
 
         //byte[] mBytes = DatatypeConverter.parseBase64Binary(message);
-        BigInteger m = (new BigInteger(1, message.getBytes())).mod(_prime);
+        //BigInteger m = (new BigInteger(1, message.getBytes())).mod(_prime);
+        BigInteger m = MyBigInt.encode(message, p);
 
-        BigInteger cA = _gen.modPow(r, _prime);
-        BigInteger cB = m.multiply(y.modPow(r, _prime)).mod(_prime);
+        BigInteger cA = g.modPow(r, p);
+        BigInteger cB = m.multiply(y.modPow(r, p)).mod(p);
 
         server.receive(this, cA, cB);
     }
@@ -97,6 +97,15 @@ public class ElgamalUser extends ElgamalEntity implements User {
         return receive(sender, c, BigInteger.ZERO);
     }
 
+    public BigInteger receive(ListServer server, BigInteger cA, BigInteger cB) {
+
+        BigInteger m = cB.divide(cA.modPow(_kPr, _prime));
+
+        // TODO: Determine how to turn m back into a string...
+
+        return m;
+    }
+
     public BigInteger decrypt(BigInteger[] c) {
         BigInteger c1 = c[0];
         BigInteger c2 = c[1];
@@ -137,6 +146,16 @@ public class ElgamalUser extends ElgamalEntity implements User {
     }
 
     public void authenticate(KeyServer keyServer) {
-        _kPr = keyServer.addUser(keyServer);
+        // Register with key server, and get private key.
+        _kPr = keyServer.addUser(this);
+
+        // Also fetch the key server's generator and big prime.
+        _gen = keyServer.generator();
+        _prime = keyServer.prime();
+
+        // Initialize randomizer...
+        BigInteger one = BigInteger.ONE;
+        BigInteger pm1 = _prime.subtract(one);
+        _rand = new RandomBigInt(one, pm1);
     }
 }

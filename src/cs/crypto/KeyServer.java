@@ -1,5 +1,11 @@
 package cs.crypto;
 
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Created by edavis on 10/17/16.
  */
@@ -62,7 +68,7 @@ public class KeyServer extends ElgamalEntity {
     }
 
     // Make private to override
-    private BigInteger publicKey() {
+    public BigInteger publicKey() {
         return _kPub;
     }
 

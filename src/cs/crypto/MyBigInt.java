@@ -1,5 +1,7 @@
 package cs.crypto;
 
+import sun.plugin2.message.Message;
+
 import java.math.BigInteger;
 
 /**
@@ -143,6 +145,21 @@ public class MyBigInt {
         }
 
         return bigI;
+    }
+
+    public static BigInteger encode(String message, BigInteger prime) throws MessageException {
+        byte[] mBytes = message.getBytes();
+        //byte[] mBytes = DatatypeConverter.parseBase64Binary(message);
+
+//        BigInteger m = (new BigInteger(1, mBytes)); //.mod(prime);
+//        if (m.compareTo(prime) > 0) {
+//            throw new MessageException("Message exceeds prime size.");
+//        }
+
+        // Override exception throwing for testing purposes...
+        BigInteger m = (new BigInteger(1, mBytes)).mod(prime);
+
+        return m;
     }
 
     public static final MyBigInt ZERO = new MyBigInt(BigInteger.ZERO);

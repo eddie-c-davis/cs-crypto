@@ -113,6 +113,11 @@ public class RSAUser implements User, RSACipher {
         return null; //_attributes;
     }
 
+    public BigInteger receive(ListServer server, BigInteger cA, BigInteger cB) {
+        // TODO: Implement maybe?
+        return BigInteger.ZERO;
+    }
+
     public BigInteger encrypt(BigInteger msg, BigInteger[] k) {
         return encrypt(msg, k[0], k[1]);
     }
@@ -261,5 +266,9 @@ public class RSAUser implements User, RSACipher {
         }
 
         return _rand;
+    }
+
+    public void authenticate(KeyServer keyServer) {
+        _d = keyServer.addUser(this);
     }
 }

@@ -1,10 +1,17 @@
 package cs.crypto;
 
+import sun.plugin2.message.Message;
+
 import java.math.BigInteger;
 
 public class Main {
     public static void main(String[] args) {
-        peapodTest();
+        try {
+            peapodTest();
+        } catch (Exception ex) {
+            print(ex.toString());
+            ex.printStackTrace(System.out);
+        }
 
         if (args.length == 1 && args[0].indexOf('h') >= 0) {
             System.out.println("usage 1: rsa <x> <p> <q> <e> [sam]");
@@ -24,7 +31,7 @@ public class Main {
         }
     }
 
-    private static void peapodTest() {
+    private static void peapodTest() throws MessageException, UserException {
         KeyServer keyServer = new KeyServer();
         ListServer listServer = new ListServer();
 
@@ -32,20 +39,27 @@ public class Main {
         User bob = new ElgamalUser("Bob");
 
         // Initializ key server (generate K).
+        print("Initializing key server...");
         keyServer.init();
 
         // Authenticate users with KeyServer...
+        print("Authenticating Alice with key server...");
         alice.authenticate(keyServer);
+        print("Authenticating Bob with key server...");
         bob.authenticate(keyServer);
 
         // Register list server with the key server...
+        print("Registering list server with key server...");
         listServer.register(keyServer);
 
         // Subscribe users to the list server...
+        print("Subscribing Alice to list server...");
         listServer.subscribe(alice);
+        print("Subscribing Bob to list server...");
         listServer.subscribe(bob);
 
         // Now try sending a message to the server...
+        print("Alice sending message to list server...");
         alice.send(listServer, "Roommate needed...");
     }
 
@@ -101,5 +115,9 @@ public class Main {
         RSAUser alice = new RSAUser("Alice");
         alice.setSAM(useSAM);
         alice.send(bob, x);
+    }
+
+    private static void print(String str) {
+        System.out.println(str);
     }
 }
