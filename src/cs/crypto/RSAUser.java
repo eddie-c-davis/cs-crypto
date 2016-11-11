@@ -108,9 +108,9 @@ public class RSAUser implements User, RSACipher {
         // TODO: Implement maybe?
     }
 
-    public List<Attribute> getAttributes() {
+    public Policy getPolicy() {
         // TODO: Implement maybe?
-        return null; //_attributes;
+        return null;
     }
 
     public BigInteger receive(ListServer server, BigInteger cA, BigInteger cB) {

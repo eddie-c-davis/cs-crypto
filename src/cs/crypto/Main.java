@@ -3,6 +3,8 @@ package cs.crypto;
 import sun.plugin2.message.Message;
 
 import java.math.BigInteger;
+import java.util.Collection;
+import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
@@ -32,13 +34,12 @@ public class Main {
     }
 
     private static void peapodTest() throws MessageException, UserException {
-        KeyServer keyServer = new KeyServer();
-        ListServer listServer = new ListServer();
-
+        // Create a couple users...
         User alice = new ElgamalUser("Alice");
         User bob = new ElgamalUser("Bob");
 
-        // Initializ key server (generate K).
+        // Initialize key server (generate K).
+        KeyServer keyServer = new KeyServer();
         print("Initializing key server...");
         keyServer.init();
 
@@ -48,7 +49,11 @@ public class Main {
         print("Authenticating Bob with key server...");
         bob.authenticate(keyServer);
 
+        boolean satisfied = alice.getPolicy().satisfies(bob.getPolicy());
+
         // Register list server with the key server...
+        ListServer listServer = new ListServer();
+        print("Reading attributes...");
         print("Registering list server with key server...");
         listServer.register(keyServer);
 

@@ -18,10 +18,9 @@ public interface User {
     BigInteger receive(User sender, BigInteger c1, BigInteger c2);
     BigInteger receive(ListServer server, BigInteger cA, BigInteger cB);
 
-    List<Attribute> getAttributes();
     String getName();
+    Policy getPolicy();
 
-    boolean satisfies(Policy policy);
-
+    //boolean satisfies(Policy policy);
     void authenticate(KeyServer keyServer);
 }

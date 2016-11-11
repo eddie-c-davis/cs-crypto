@@ -10,7 +10,7 @@ import javax.xml.bind.DatatypeConverter;
 public class ElgamalUser extends ElgamalEntity implements User {
     private RandomBigInt _rand;
 
-    private List<Attribute> _attributes;
+    private Policy _policy;
 
     public ElgamalUser() {
         super("");
@@ -136,13 +136,8 @@ public class ElgamalUser extends ElgamalEntity implements User {
         return m;
     }
 
-    public List<Attribute> getAttributes() {
-        return _attributes;
-    }
-
-    public boolean satisfies(Policy policy) {
-        // TODO: Implement based on attributes in policy..
-        return false;
+    public Policy getPolicy() {
+        return _policy;
     }
 
     public void authenticate(KeyServer keyServer) {
@@ -157,5 +152,8 @@ public class ElgamalUser extends ElgamalEntity implements User {
         BigInteger one = BigInteger.ONE;
         BigInteger pm1 = _prime.subtract(one);
         _rand = new RandomBigInt(one, pm1);
+
+        // Fetch this user's policy
+        _policy = PolicyList.get().map().get(getName());
     }
 }
