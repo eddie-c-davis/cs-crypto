@@ -1,8 +1,7 @@
 package cs.crypto;
 
-import sun.plugin2.message.Message;
-
 import java.math.BigInteger;
+import java.security.GeneralSecurityException;
 import java.util.Collection;
 import java.util.List;
 
@@ -33,10 +32,10 @@ public class Main {
         }
     }
 
-    private static void peapodTest() throws MessageException, UserException {
+    private static void peapodTest() throws GeneralSecurityException, MessageException, UserException {
         // Create a couple users...
-        User alice = new ElgamalUser("Alice");
-        User bob = new ElgamalUser("Bob");
+        User alice = new PeapodUser("Alice");
+        User bob = new PeapodUser("Bob");
 
         // Initialize key server (generate K).
         KeyServer keyServer = new KeyServer();
@@ -49,11 +48,11 @@ public class Main {
         print("Authenticating Bob with key server...");
         bob.authenticate(keyServer);
 
-        boolean satisfied = alice.getPolicy().satisfies(bob.getPolicy());
+        // Attribute test...
+        //boolean satisfied = alice.getPolicy().satisfies(bob.getPolicy());
 
         // Register list server with the key server...
         ListServer listServer = new ListServer();
-        print("Reading attributes...");
         print("Registering list server with key server...");
         listServer.register(keyServer);
 

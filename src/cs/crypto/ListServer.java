@@ -73,9 +73,11 @@ public class ListServer extends ElgamalEntity {
         String userName = user.getName();
         if (!_subscribers.containsKey(userName)) {
             // Get transformation secret key from key server...
-            BigInteger s_i = _keyServer.getTransKey(this, user);
             _subscribers.put(userName, user);
-            _transKeys.put(userName, s_i);
+
+            // TODO: Re-evaluate this code, but I do not think it is needed...
+            //BigInteger s_i = _keyServer.getTransKey(this, user);
+            //_transKeys.put(userName, s_i);
         } else {
             throw new UserException("User '" + userName + "' already subscribed.");
         }

@@ -1,0 +1,206 @@
+package cs.crypto;
+
+import java.math.BigInteger;
+import java.security.GeneralSecurityException;
+import java.util.ArrayList;
+import java.util.List;
+
+import static cs.crypto.AES.encrypt;
+
+/**
+ * Created by edavis on 11/22/16.
+ */
+public class PeapodUser implements User {
+    private String _name;
+    private Policy _policy;
+    private RandomBigInt _rand;
+
+    private BigInteger _gen;
+    private BigInteger _prime;
+
+    public PeapodUser() {
+        this("");
+    }
+
+    public PeapodUser(String name) {
+        // Set name...
+        _name = name;
+
+        // Fetch this user's policy
+        _policy = PolicyList.get().map().get(getName());
+    }
+
+    public void send(ListServer server, String message) throws GeneralSecurityException, MessageException, UserException {
+//        BigInteger x = _kPr;    // x is x_u, the user's private key.
+//        BigInteger g = _gen;    // g is the global generator (originating from the key server).
+        BigInteger p = _prime;  // p is our big prime.
+//        BigInteger y = g.modPow(x, p);
+//        BigInteger r = _rand.get();
+
+        // Convert message to
+        //byte[] mBytes = DatatypeConverter.parseBase64Binary(message);
+        //BigInteger m = (new BigInteger(1, message.getBytes())).mod(_prime);
+        BigInteger m = MyBigInt.encode(message, p);
+
+        BigInteger cA = BigInteger.ZERO; //g.modPow(r, p);
+        BigInteger cB = BigInteger.ZERO; //m.multiply(y.modPow(r, p)).mod(p);
+
+        // 1) Alice encrypts M with a secure symmetric encryption under randomly generated key k in Zp.
+        BigInteger k = _rand.get();
+
+        // We will use AES as our symmetric encryption scheme.
+        BigInteger c = AES.encrypt(m, k);
+
+        assert(m == AES.decrypt(c, k));
+
+        // 2) Alice then randomly picks a sub-key for each v-attribute in policy.
+        List<BigInteger> subKeys = getSubKeys(k);
+
+
+        server.receive(this, cA, cB);
+    }
+
+    private List<BigInteger> getSubKeys(BigInteger key) {
+        List<BigInteger> subKeys = new ArrayList<>(_policy.size());
+
+        BigInteger one = BigInteger.ONE;
+        BigInteger rem = key;
+
+        for (Attribute attribute : _policy.attributes()) {
+            BigInteger subKey;
+            if (attribute.required()) {
+                // Randomly generate a sub-key < k
+                subKey = (new RandomBigInt(one, rem.subtract(one))).get();
+                rem = rem.divide(subKey);
+            } else if (attribute.forbidden()) {
+                // Generate a random number r_i in Z_p
+                subKey = _rand.get();
+            } else {    // attribute.irrelevant()
+                subKey = one;
+            }
+
+            subKeys.add(subKey);
+        }
+
+        BigInteger prod = one;
+        List<Attribute> attributes = _policy.attributes();
+        for (int i = 0; i < subKeys.size(); i++) {
+            if (!attributes.get(i).irrelevant()) {
+                prod = prod.multiply(subKeys.get(i));
+            }
+        }
+
+        assert(prod.equals(key));
+
+        return subKeys;
+    }
+
+    public void send(User receiver, String message) {
+        send((PeapodUser) receiver, message);
+    }
+
+    public void send(User receiver, long m) {
+        send((PeapodUser) receiver, m);
+    }
+
+    public void send(User receiver, BigInteger m) {
+        send((PeapodUser) receiver, m);
+    }
+
+    public BigInteger receive(User sender, BigInteger c) {
+        return receive((PeapodUser) sender, c);
+    }
+
+    public BigInteger receive(User sender, BigInteger c1, BigInteger c2) {
+        return receive((PeapodUser) sender, c1, c2);
+    }
+
+    public void send(PeapodUser receiver, String message) {
+        byte[] mBytes = message.getBytes();
+        //byte[] mBytes = DatatypeConverter.parseBase64Binary(message);
+        BigInteger m = BigInteger.ZERO; //(new BigInteger(1, mBytes)).mod(receiver.prime());
+
+        send(receiver, m);
+    }
+
+    public void send(PeapodUser receiver, long m) {
+        send(receiver, BigInteger.valueOf(m));
+    }
+
+    public void send(PeapodUser receiver, BigInteger m) {
+        System.out.println(String.format("%s: Sending %s to %s.", _name, m.toString(), receiver.getName()));
+
+//        _prime = receiver.prime();
+//        _gen = receiver.generator();
+//        BigInteger kPub = receiver.publicKey();
+//
+        BigInteger[] c = new BigInteger[] {BigInteger.ZERO}; //encrypt(m, _prime, _gen, kPub);
+
+        receiver.receive(this, c);
+    }
+
+    public BigInteger receive(PeapodUser sender, BigInteger c) {
+        return receive(sender, c, BigInteger.ZERO);
+    }
+
+    public BigInteger receive(ListServer server, BigInteger cA, BigInteger cB) {
+        BigInteger m = BigInteger.ZERO; //cB.divide(cA.modPow(_kPr, _prime));
+
+        // TODO: Determine how to turn m back into a string...
+
+        return m;
+    }
+
+    public BigInteger decrypt(BigInteger[] c) {
+        BigInteger c1 = c[0];
+        BigInteger c2 = c[1];
+
+//        BigInteger secKey; // = c1.modPow(_kPr, _prime);
+//        if (_useSAM) {
+//            secKey = MyBigInt.squareAndMultiply(c1, _kPr, _prime);
+//        } else {
+//            secKey = c1.modPow(_kPr, _prime);
+//        }
+//
+//        BigInteger secInv = secKey.modInverse(_prime);
+        BigInteger m = BigInteger.ZERO; //c2.multiply(secInv).mod(_prime);
+
+        return m;
+    }
+
+    public BigInteger receive(PeapodUser sender, BigInteger[] c) {
+        BigInteger m = decrypt(c);
+
+        // We are good up to here, but mPrime.toByteArray does not return same bytes as String.getBytes...
+        //byte[] mBytes = mPrime.toByteArray();
+        //String message = new String(mBytes);
+        //String message = DatatypeConverter.printBase64Binary(mBytes);
+
+        System.out.println(String.format("%s: Received %s from %s.", _name, m.toString(), sender.getName()));
+
+        return m;
+    }
+
+    public String getName() {
+        return _name;
+    }
+
+    public Policy getPolicy() {
+        return _policy;
+    }
+
+    public void authenticate(KeyServer keyServer) {
+        // Register with key server, and get private key.
+        //_kPr = keyServer.addUser(this);
+        keyServer.addUser(this);
+
+        // Also fetch the key server's generator and big prime.
+        _gen = keyServer.generator();
+        _prime = keyServer.prime();
+
+        // Initialize randomizer...
+        BigInteger one = BigInteger.ONE;
+        BigInteger pm1 = _prime.subtract(one);
+        _rand = new RandomBigInt(one, pm1);
+    }
+}

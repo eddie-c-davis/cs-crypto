@@ -1,15 +1,16 @@
 package cs.crypto;
 
 import java.math.BigInteger;
+import java.security.GeneralSecurityException;
 import java.util.List;
 
 /**
  * Created by edavis on 10/16/16.
  */
 public interface User {
-    void init();
+    //void init();
 
-    void send(ListServer server, String message) throws MessageException, UserException;
+    void send(ListServer server, String message) throws GeneralSecurityException, MessageException, UserException;
     void send(User receiver, String message);
     void send(User receiver, long m);
     void send(User receiver, BigInteger m);

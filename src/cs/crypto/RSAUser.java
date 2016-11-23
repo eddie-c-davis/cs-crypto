@@ -269,6 +269,7 @@ public class RSAUser implements User, RSACipher {
     }
 
     public void authenticate(KeyServer keyServer) {
-        _d = keyServer.addUser(this);
+        // TODO: Implement maybe?
+        //_d = keyServer.addUser(this);
     }
 }

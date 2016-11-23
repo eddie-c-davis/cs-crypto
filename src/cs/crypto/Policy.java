@@ -38,6 +38,29 @@ public class Policy {
         return _attributes;
     }
 
+    public List<Attribute> getRequired() {
+        return getMatching(Attribute.REQUIRED);
+    }
+
+    public List<Attribute> getForbidden() {
+        return getMatching(Attribute.FORBIDDEN);
+    }
+
+    public List<Attribute> getIrrelvant() {
+        return getMatching(Attribute.IRRELEVANT);
+    }
+
+    public List<Attribute> getMatching(char value) {
+        List<Attribute> matches = new ArrayList<>(_attributes.size());
+        for (Attribute attribute : _attributes) {
+            if (attribute.match(value)) {
+                matches.add(attribute);
+            }
+        }
+
+        return matches;
+    }
+
     public boolean satisfies(Policy other) {
         // Does this policy satisfy my policy?
         boolean satisfied = true;
@@ -51,5 +74,9 @@ public class Policy {
         }
 
         return satisfied;
+    }
+
+    public int size() {
+        return _attributes.size();
     }
 }

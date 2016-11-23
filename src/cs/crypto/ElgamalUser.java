@@ -142,7 +142,7 @@ public class ElgamalUser extends ElgamalEntity implements User {
 
     public void authenticate(KeyServer keyServer) {
         // Register with key server, and get private key.
-        _kPr = keyServer.addUser(this);
+        keyServer.addUser(this);
 
         // Also fetch the key server's generator and big prime.
         _gen = keyServer.generator();

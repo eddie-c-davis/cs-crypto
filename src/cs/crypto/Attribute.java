@@ -1,12 +1,14 @@
 package cs.crypto;
 
+import java.math.BigInteger;
+
 /**
  * Created by edavis on 10/16/16.
  */
-public class Attribute {
-    private static final char REQUIRED = 'v';
-    private static final char FORBIDDEN = 'x';
-    private static final char IRRELEVANT = '*';
+public class Attribute extends ElgamalEntity {
+    public static final char REQUIRED = 'v';
+    public static final char FORBIDDEN = 'x';
+    public static final char IRRELEVANT = '*';
 
     private String _name;
     private char _value;
@@ -45,5 +47,25 @@ public class Attribute {
         char otherVal = other.getValue();
 
         return (thisVal == IRRELEVANT || thisVal == otherVal);
+    }
+
+    public boolean match(char other) {
+        return _value == other;
+    }
+
+    public boolean required() {
+        return _value == REQUIRED;
+    }
+
+    public boolean forbidden() {
+        return _value == FORBIDDEN;
+    }
+
+    public boolean irrelevant() {
+        return _value == IRRELEVANT;
+    }
+
+    public void publicKey(BigInteger kPub) {
+        _kPub = kPub;
     }
 }
