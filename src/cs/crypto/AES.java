@@ -35,7 +35,7 @@ public class AES {
         MessageDigest sha = MessageDigest.getInstance(HASH);
         _keyBytes = sha.digest(key);
         _keyBytes = Arrays.copyOf(_keyBytes, KEY_SIZE);
-        _secretKey = new SecretKeySpec(key, CIPHER.substring(0, 3));
+        _secretKey = new SecretKeySpec(_keyBytes, CIPHER.substring(0, 3));
     }
 
     public static String encrypt(String message, String key) throws GeneralSecurityException, UnsupportedEncodingException {

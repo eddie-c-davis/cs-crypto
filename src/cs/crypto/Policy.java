@@ -79,4 +79,16 @@ public class Policy {
     public int size() {
         return _attributes.size();
     }
+
+    @Override
+    public String toString() {
+        String str = String.format("%s: <", _name);
+        for (Attribute attribute : _attributes) {
+            str = String.format("%s%c,", str, attribute.getValue());
+        }
+
+        str = String.format("%s>", str);
+
+        return str;
+    }
 }

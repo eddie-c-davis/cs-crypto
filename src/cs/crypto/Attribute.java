@@ -68,4 +68,9 @@ public class Attribute extends ElgamalEntity {
     public void publicKey(BigInteger kPub) {
         _kPub = kPub;
     }
+
+    @Override
+    public String toString() {
+        return String.format("%s(%c)", _name, _value);
+    }
 }

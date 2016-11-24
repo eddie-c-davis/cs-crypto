@@ -46,32 +46,35 @@ public class PeapodUser implements User {
         BigInteger cB = BigInteger.ZERO; //m.multiply(y.modPow(r, p)).mod(p);
 
         // 1) Alice encrypts M with a secure symmetric encryption under randomly generated key k in Zp.
-        BigInteger k = _rand.get();
-
-        // We will use AES as our symmetric encryption scheme.
-        BigInteger c = AES.encrypt(m, k);
-
-        assert(m == AES.decrypt(c, k));
 
         // 2) Alice then randomly picks a sub-key for each v-attribute in policy.
-        List<BigInteger> subKeys = getSubKeys(k);
+        List<BigInteger> subKeys = getSubKeys();
+        BigInteger key = getSymKey(subKeys);
 
+        BigInteger prod = getKeyProduct(subKeys);
+        assert(prod.equals(key));
+
+        // We will use AES as our symmetric encryption scheme.
+        BigInteger c = AES.encrypt(m, key);
+        assert(m == AES.decrypt(c, key));
 
         server.receive(this, cA, cB);
     }
 
-    private List<BigInteger> getSubKeys(BigInteger key) {
+    private List<BigInteger> getSubKeys() {
         List<BigInteger> subKeys = new ArrayList<>(_policy.size());
 
         BigInteger one = BigInteger.ONE;
-        BigInteger rem = key;
+        BigInteger size = BigInteger.valueOf(_policy.size());
+
+        // This number needs to be much smaller to avoid overflow...
+        BigInteger max = _prime.divide(size);
 
         for (Attribute attribute : _policy.attributes()) {
             BigInteger subKey;
             if (attribute.required()) {
                 // Randomly generate a sub-key < k
-                subKey = (new RandomBigInt(one, rem.subtract(one))).get();
-                rem = rem.divide(subKey);
+                subKey = (new RandomBigInt(one, max)).get();
             } else if (attribute.forbidden()) {
                 // Generate a random number r_i in Z_p
                 subKey = _rand.get();
@@ -82,17 +85,33 @@ public class PeapodUser implements User {
             subKeys.add(subKey);
         }
 
-        BigInteger prod = one;
+        return subKeys;
+    }
+
+    private BigInteger getSymKey(List<BigInteger> subKeys) {
         List<Attribute> attributes = _policy.attributes();
+
+        BigInteger key = BigInteger.ONE;
         for (int i = 0; i < subKeys.size(); i++) {
-            if (!attributes.get(i).irrelevant()) {
-                prod = prod.multiply(subKeys.get(i));
+            if (attributes.get(i).required()) {
+                key = key.multiply(subKeys.get(i)).mod(_prime);
             }
         }
 
-        assert(prod.equals(key));
+        return key;
+    }
 
-        return subKeys;
+    private BigInteger getKeyProduct(List<BigInteger> subKeys) {
+        List<Attribute> attributes = _policy.attributes();
+
+        BigInteger prod = BigInteger.ONE;
+        for (int i = 0; i < subKeys.size(); i++) {
+            if (!attributes.get(i).forbidden()) {
+                prod = prod.multiply(subKeys.get(i)).mod(_prime);
+            }
+        }
+
+        return prod;
     }
 
     public void send(User receiver, String message) {
