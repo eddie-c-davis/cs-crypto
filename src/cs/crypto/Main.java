@@ -32,7 +32,7 @@ public class Main {
         }
     }
 
-    private static void peapodTest() throws GeneralSecurityException, MessageException, UserException {
+    private static void peapodTest() throws GeneralSecurityException, PeapodException {
         // Create a couple users...
         User alice = new PeapodUser("Alice");
         User bob = new PeapodUser("Bob");
@@ -65,6 +65,9 @@ public class Main {
         // Now try sending a message to the server...
         print("Alice sending message to list server...");
         alice.send(listServer, "Roommate needed...");
+
+        print("Bob checking list server for messages...");
+        bob.receive(listServer);
     }
 
     private static void elgamalTest(String[] args) {

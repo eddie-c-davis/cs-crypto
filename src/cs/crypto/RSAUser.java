@@ -113,7 +113,7 @@ public class RSAUser implements User, RSACipher {
         return null;
     }
 
-    public BigInteger receive(ListServer server, BigInteger cA, BigInteger cB) {
+    public BigInteger receive(ListServer server) { //}, BigInteger cA, BigInteger cB) {
         // TODO: Implement maybe?
         return BigInteger.ZERO;
     }

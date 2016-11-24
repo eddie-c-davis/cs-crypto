@@ -46,7 +46,7 @@ public class ElgamalUser extends ElgamalEntity implements User {
         BigInteger cA = g.modPow(r, p);
         BigInteger cB = m.multiply(y.modPow(r, p)).mod(p);
 
-        server.receive(this, cA, cB);
+        //server.receive(this, cA, cB);
     }
 
     public void send(User receiver, String message) {
@@ -97,9 +97,9 @@ public class ElgamalUser extends ElgamalEntity implements User {
         return receive(sender, c, BigInteger.ZERO);
     }
 
-    public BigInteger receive(ListServer server, BigInteger cA, BigInteger cB) {
+    public BigInteger receive(ListServer server) { //}, BigInteger cA, BigInteger cB) {
 
-        BigInteger m = cB.divide(cA.modPow(_kPr, _prime));
+        BigInteger m = BigInteger.ZERO; //cB.divide(cA.modPow(_kPr, _prime));
 
         // TODO: Determine how to turn m back into a string...
 
@@ -140,7 +140,7 @@ public class ElgamalUser extends ElgamalEntity implements User {
         return _policy;
     }
 
-    public void authenticate(KeyServer keyServer) {
+    public void authenticate(KeyServer keyServer) throws ServerException {
         // Register with key server, and get private key.
         keyServer.addUser(this);
 

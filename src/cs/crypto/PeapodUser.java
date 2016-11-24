@@ -1,9 +1,12 @@
 package cs.crypto;
 
+import org.apache.log4j.Logger;
+
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static cs.crypto.AES.encrypt;
 
@@ -11,6 +14,8 @@ import static cs.crypto.AES.encrypt;
  * Created by edavis on 11/22/16.
  */
 public class PeapodUser implements User {
+    private static Logger _log = Logger.getLogger(PeapodUser.class.getName());
+
     private String _name;
     private Policy _policy;
     private RandomBigInt _rand;
@@ -31,19 +36,16 @@ public class PeapodUser implements User {
     }
 
     public void send(ListServer server, String message) throws GeneralSecurityException, MessageException, UserException {
-//        BigInteger x = _kPr;    // x is x_u, the user's private key.
-//        BigInteger g = _gen;    // g is the global generator (originating from the key server).
+        BigInteger g = _gen;    // g is the global generator (originating from the key server).
         BigInteger p = _prime;  // p is our big prime.
-//        BigInteger y = g.modPow(x, p);
-//        BigInteger r = _rand.get();
 
         // Convert message to
         //byte[] mBytes = DatatypeConverter.parseBase64Binary(message);
         //BigInteger m = (new BigInteger(1, message.getBytes())).mod(_prime);
         BigInteger m = MyBigInt.encode(message, p);
 
-        BigInteger cA = BigInteger.ZERO; //g.modPow(r, p);
-        BigInteger cB = BigInteger.ZERO; //m.multiply(y.modPow(r, p)).mod(p);
+        String logMsg = getName() + ": Encrypting message '" + message + "' (" + m + ").";
+        _log.info(logMsg);
 
         // 1) Alice encrypts M with a secure symmetric encryption under randomly generated key k in Zp.
 
@@ -55,10 +57,38 @@ public class PeapodUser implements User {
         assert(prod.equals(key));
 
         // We will use AES as our symmetric encryption scheme.
-        BigInteger c = AES.encrypt(m, key);
-        assert(m == AES.decrypt(c, key));
+        BigInteger cSym = AES.encrypt(m, key);
+        assert(m == AES.decrypt(cSym, key));
 
-        server.receive(this, cA, cB);
+        // Now we ElGamal encrypt the the subkeys before depositing on the list server...
+        List<BigInteger> pubKeys = getPubKeys();
+        List<Pair<BigInteger>> cList = new ArrayList<>(pubKeys.size());
+        for (BigInteger y : pubKeys) {
+            BigInteger r = _rand.get();     // Randomness...
+            BigInteger cA = g.modPow(r, p);
+            BigInteger cB = m.multiply(y.modPow(r, p)).mod(p);
+
+            cList.add(new Pair<>(cA, cB));
+        }
+
+        logMsg = getName() + ": Sending cSym " + cSym + ", cList = [";
+        for (Pair<BigInteger> pair : cList) {
+            logMsg += pair + ",";
+        }
+
+        logMsg += "] to '" + server.getName() + "'";
+        _log.info(logMsg);
+
+        server.receive(this, cSym, cList);
+    }
+
+    private List<BigInteger> getPubKeys() {
+        List<BigInteger> pubKeys = new ArrayList<>(_policy.size());
+        for (Attribute attribute : _policy.attributes()) {
+            pubKeys.add(attribute.publicKey());
+        }
+
+        return pubKeys;
     }
 
     private List<BigInteger> getSubKeys() {
@@ -162,10 +192,25 @@ public class PeapodUser implements User {
         return receive(sender, c, BigInteger.ZERO);
     }
 
-    public BigInteger receive(ListServer server, BigInteger cA, BigInteger cB) {
+    public BigInteger receive(ListServer server) { //}, BigInteger cA, BigInteger cB) {
         BigInteger m = BigInteger.ZERO; //cB.divide(cA.modPow(_kPr, _prime));
 
-        // TODO: Determine how to turn m back into a string...
+        // TODO: Move this code to PeapodUser.receive method!
+        // Now send  cA'' and cB'' to the respective subscribers...
+//        for (Map.Entry<String, User> entry : _subscribers.entrySet()) {
+//            String subName = entry.getKey();
+//            if (!subName.equals(senderName)) {              // Do not send message back to sender...
+//                User subscriber = entry.getValue();
+//                BigInteger s_i = BigInteger.ZERO; //_transKeys.get(subName);
+//
+//                // Calculate cA'' and cB'''
+//                BigInteger cDblPrA = cPrimeA;
+//                BigInteger cDblPrB = cPrimeB.divide(cPrimeA.modPow(s_i, _prime));
+//
+//                // TODO: Add attribute matching code here!!!
+//                subscriber.receive(this, cDblPrA, cDblPrB);
+//            }
+//        }
 
         return m;
     }
@@ -208,9 +253,10 @@ public class PeapodUser implements User {
         return _policy;
     }
 
-    public void authenticate(KeyServer keyServer) {
+    public void authenticate(KeyServer keyServer) throws ServerException {
         // Register with key server, and get private key.
         //_kPr = keyServer.addUser(this);
+        _log.info("Authenticating user '" + getName() + "' with key server '" + keyServer.getName() + "'");
         keyServer.addUser(this);
 
         // Also fetch the key server's generator and big prime.
@@ -221,5 +267,8 @@ public class PeapodUser implements User {
         BigInteger one = BigInteger.ONE;
         BigInteger pm1 = _prime.subtract(one);
         _rand = new RandomBigInt(one, pm1);
+
+        // Get policy attribute public keys
+        _policy.setPublicKeys(keyServer.getPublicKeys());
     }
 }

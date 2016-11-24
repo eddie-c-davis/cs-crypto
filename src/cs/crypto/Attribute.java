@@ -65,6 +65,14 @@ public class Attribute extends ElgamalEntity {
         return _value == IRRELEVANT;
     }
 
+    public void privateKey(KeyServer server, BigInteger kPr) throws ServerException {
+        if (server.authorized()) {
+            _kPr = kPr;
+        } else {
+            throw new ServerException("KeyServer '" + server.getName() + "' is not authorized to distributed private keys.");
+        }
+    }
+
     public void publicKey(BigInteger kPub) {
         _kPub = kPub;
     }

@@ -1,5 +1,6 @@
 package cs.crypto;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,6 +79,12 @@ public class Policy {
 
     public int size() {
         return _attributes.size();
+    }
+
+    public void setPublicKeys(List<BigInteger> pubKeys) {
+        for (int i = 0; i < pubKeys.size(); i++) {
+            _attributes.get(i).publicKey(pubKeys.get(i));
+        }
     }
 
     @Override

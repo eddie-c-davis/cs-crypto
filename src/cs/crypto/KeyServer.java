@@ -1,5 +1,8 @@
 package cs.crypto;
 
+import com.sun.corba.se.spi.activation.Server;
+import org.apache.log4j.Logger;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,8 +13,13 @@ import java.util.Map;
  * Created by edavis on 10/17/16.
  */
 public class KeyServer extends ElgamalEntity {
+    private static Logger _log = Logger.getLogger(KeyServer.class.getName());
+
+    private boolean _authorized = false;
+
     private RandomBigInt _rand;
 
+    private Map<String, BigInteger> _privKeys = new HashMap<>();
     private Map<String, BigInteger> _pubKeys = new HashMap<>();
     private Map<String, BigInteger> _transKeys = new HashMap<>();
 
@@ -29,61 +37,104 @@ public class KeyServer extends ElgamalEntity {
     }
 
     public void init() {
+        _log.info("Initializing key server '" + getName() + "'");
         super.init();
+
+        _authorized = true;
         _rand = new RandomBigInt(BigInteger.ONE, _kPr.subtract(BigInteger.ONE));
 
         List<Attribute> attrList = AttributeList.get().list();
         for (Attribute attribute : attrList) {
+            String attrName = attribute.getName();
+
             // Get a private key x_u for this user...
             BigInteger x_u = _rand.get();
+            _privKeys.put(attrName, x_u);
+
+            try {
+                attribute.privateKey(this, x_u);
+            } catch (ServerException se) {
+                _log.error("Error setting private key for attribute '" + attribute + "'");
+            }
+
+
             BigInteger s_u = _kPr.subtract(x_u);
-
-            String attrName = attribute.getName();
-            attribute.publicKey(x_u);
-
-            _pubKeys.put(attrName, x_u);
             _transKeys.put(attrName, s_u);
+
+            BigInteger y_u = _gen.modPow(x_u, _prime);
+            _pubKeys.put(attrName, y_u);
+            attribute.publicKey(y_u);
         }
     }
 
-    public void register(ListServer listServer) {
+    public void register(ListServer listServer) throws ServerException {
         if (!_listServers.contains(listServer)) {
             _listServers.add(listServer);
+        } else {
+            throw new ServerException("List server '" + listServer.getName() + "' already registered with key server.");
         }
     }
 
-    public void unregister(ListServer listServer) {
+    public void unregister(ListServer listServer) throws ServerException {
         if (_listServers.contains(listServer)) {
             _listServers.remove(listServer);
+        } else {
+            throw new ServerException("List server '" + listServer.getName() + "' not registered with key server.");
         }
     }
 
-    public BigInteger getTransKey(ListServer listServer, Attribute attribute) throws AttributeException, ServerException {
-        BigInteger s_u = BigInteger.ZERO;
+    public void addUser(User user) throws ServerException {
+        if (!_regUsers.contains(user)) {
+            _log.info("Registering user '" + user.getName() + "'");
+            _regUsers.add(user);
+        } else {
+            throw new ServerException("User '" + user.getName() + "' already registered.");
+        }
+    }
 
-        // Authenticate list server and user...
-        String attrName = attribute.getName();
+    public boolean authorized() {
+        return _authorized;
+    }
+
+    public BigInteger publicKey() {
+        return _kPub;
+    }
+
+    private List<BigInteger> getPrivateKeys() {
+        List<Attribute> attrList = AttributeList.get().list();
+        List<BigInteger> privKeys = new ArrayList<>(attrList.size());
+
+        for (Attribute attribute : attrList) {
+            privKeys.add(_privKeys.get(attribute.getName()));
+        }
+
+        return privKeys;
+    }
+
+    public List<BigInteger> getPublicKeys() {
+        List<Attribute> attrList = AttributeList.get().list();
+        List<BigInteger> pubKeys = new ArrayList<>(attrList.size());
+
+        for (Attribute attribute : attrList) {
+            pubKeys.add(_pubKeys.get(attribute.getName()));
+        }
+
+        return pubKeys;
+    }
+
+
+    public List<BigInteger> getTransformationKeys(ListServer listServer) throws ServerException {
         if (_listServers.contains(listServer)) {
-            if (_transKeys.containsKey(attrName)) {
-                s_u = _transKeys.get(attrName);
-            } else {
-                throw new AttributeException("Undefined attribute '" + attrName + "'.");
+            List<Attribute> attrList = AttributeList.get().list();
+            List<BigInteger> transKeys = new ArrayList<>(attrList.size());
+
+            for (Attribute attribute : attrList) {
+                transKeys.add(_transKeys.get(attribute.getName()));
             }
+
+            return transKeys;
         } else {
             throw new ServerException("List server '" + listServer.getName() + "' is not registered.");
         }
-
-        return s_u;
-    }
-
-    public void addUser(User user) {
-        if (!_regUsers.contains(user)) {
-            _regUsers.add(user);
-        }
-    }
-
-    // Make private to override
-    public BigInteger publicKey() {
-        return _kPub;
     }
 }
