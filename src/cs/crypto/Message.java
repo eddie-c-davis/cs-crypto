@@ -21,6 +21,10 @@ public class Message {
         set("", "");
     }
 
+    public Message(BigInteger cSym, List<Pair<BigInteger>> cPairs) {
+        this("", cSym, cPairs);
+    }
+
     public Message(String from, BigInteger cSym, List<Pair<BigInteger>> cPairs) {
         _from = from;
         _cSym = cSym;

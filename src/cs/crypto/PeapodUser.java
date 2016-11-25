@@ -79,7 +79,7 @@ public class PeapodUser implements User {
         logMsg += "] to '" + server.getName() + "'";
         _log.info(logMsg);
 
-        server.receive(this, cSym, cList);
+        server.deposit(this, cSym, cList);
     }
 
     private List<BigInteger> getPubKeys() {
@@ -195,22 +195,12 @@ public class PeapodUser implements User {
     public BigInteger receive(ListServer server) { //}, BigInteger cA, BigInteger cB) {
         BigInteger m = BigInteger.ZERO; //cB.divide(cA.modPow(_kPr, _prime));
 
-        // TODO: Move this code to PeapodUser.receive method!
-        // Now send  cA'' and cB'' to the respective subscribers...
-//        for (Map.Entry<String, User> entry : _subscribers.entrySet()) {
-//            String subName = entry.getKey();
-//            if (!subName.equals(senderName)) {              // Do not send message back to sender...
-//                User subscriber = entry.getValue();
-//                BigInteger s_i = BigInteger.ZERO; //_transKeys.get(subName);
-//
-//                // Calculate cA'' and cB'''
-//                BigInteger cDblPrA = cPrimeA;
-//                BigInteger cDblPrB = cPrimeB.divide(cPrimeA.modPow(s_i, _prime));
-//
-//                // TODO: Add attribute matching code here!!!
-//                subscriber.receive(this, cDblPrA, cDblPrB);
-//            }
-//        }
+        List<Message> messages = server.receive(this);
+        for (Message message : messages) {
+            // TODO: Attempt to decrypt message...
+            
+        }
+
 
         return m;
     }

@@ -66,6 +66,7 @@ public class Main {
         print("Alice sending message to list server...");
         alice.send(listServer, "Roommate needed...");
 
+        // Bob fetches the messages matching his policy attributes...
         print("Bob checking list server for messages...");
         bob.receive(listServer);
     }

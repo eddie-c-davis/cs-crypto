@@ -9,6 +9,7 @@ public class Attribute extends ElgamalEntity {
     public static final char REQUIRED = 'v';
     public static final char FORBIDDEN = 'x';
     public static final char IRRELEVANT = '*';
+    public static final char MISSING = '-';
 
     private String _name;
     private char _value;
@@ -63,6 +64,10 @@ public class Attribute extends ElgamalEntity {
 
     public boolean irrelevant() {
         return _value == IRRELEVANT;
+    }
+
+    public boolean missing() {
+        return _value == MISSING;
     }
 
     public void privateKey(KeyServer server, BigInteger kPr) throws ServerException {

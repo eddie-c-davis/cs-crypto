@@ -2,8 +2,10 @@ package cs.crypto;
 
 import org.apache.log4j.Logger;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Created by edavis on 10/16/16.
@@ -13,7 +15,7 @@ public class ListServer extends ElgamalEntity {
     private static Logger _log = Logger.getLogger(KeyServer.class.getName());
 
     private boolean _registered = false;
-
+    private RandomBigInt _rand;
     private KeyServer _keyServer;
 
     private List<Message> _messages = new ArrayList<>(DEFAULT_CAPACITY);
@@ -28,7 +30,59 @@ public class ListServer extends ElgamalEntity {
         super("ListServer", bitLen);
     }
 
-    public void receive(User sender, BigInteger cSym, List<Pair<BigInteger>> cList) throws UserException {
+    public void register(KeyServer keyServer) throws ServerException {
+        _log.info("Registering list server '" + getName() + "' with key server '" + keyServer.getName() + "'.");
+        _registered = true;
+
+        // register with the key server...
+        _keyServer = keyServer;
+        _keyServer.register(this);
+
+        // Also fetch the key server's generator and big prime.
+        _gen = keyServer.generator();
+        _prime = keyServer.prime();
+
+        // Initialize randomizer...
+        BigInteger one = BigInteger.ONE;
+        BigInteger pm1 = _prime.subtract(one);
+        _rand = new RandomBigInt(one, pm1);
+
+        // Get transformation secret keys from key server
+        _transKeys = keyServer.getTransformationKeys(this);
+    }
+
+    public void unregister(KeyServer keyServer) throws ServerException {
+        if (_keyServer == keyServer) {
+            _log.info("Unregistering list server '" + getName() + "' with key server '" + keyServer.getName() + "'.");
+            _keyServer = null;
+            _keyServer.unregister(this);
+            _registered = false;
+        } else {
+            throw new ServerException("Cannot unregister non-matching key server.");
+        }
+    }
+
+    public void subscribe(User user) throws UserException {
+        String userName = user.getName();
+        if (!_subscribers.containsKey(userName)) {
+            _log.info("Subscribing user '" + userName + "' to list server '" + getName() + "'.");
+            _subscribers.put(userName, user);
+        } else {
+            throw new UserException("User '" + userName + "' already subscribed.");
+        }
+    }
+
+    public void unsubscribe(User user) throws UserException {
+        String userName = user.getName();
+        if (_subscribers.containsKey(userName)) {
+            _log.info("Unsubscribing user '" + userName + "' from list server '" + getName() + "'.");
+            _subscribers.remove(userName);
+        } else {
+            throw new UserException("User '" + userName + "' not subscribed.");
+        }
+    }
+
+    public void deposit(User sender, BigInteger cSym, List<Pair<BigInteger>> cList) throws UserException {
         String senderName = sender.getName();
         if (_subscribers.containsKey(senderName)) {
 
@@ -69,51 +123,98 @@ public class ListServer extends ElgamalEntity {
         }
     }
 
-    public void register(KeyServer keyServer) throws ServerException {
-        _log.info("Registering list server '" + getName() + "' with key server '" + keyServer.getName() + "'.");
-        _registered = true;
+    public List<Message> receive(User receiver) {
+        List<Message> messages = new ArrayList<>();
 
-        // register with the key server...
-        _keyServer = keyServer;
-        _keyServer.register(this);
+        Policy policy = receiver.getPolicy();
+        List<Attribute> attributes = policy.attributes();
 
-        // Also fetch the key server's generator and big prime.
-        _gen = keyServer.generator();
-        _prime = keyServer.prime();
+        for (Message message : _messages) {
+            List<Pair<BigInteger>> cPairs = message.cPairs();
+            int nPairs = cPairs.size();
 
-        // Get transformation secret keys from key server
-        _transKeys = keyServer.getTransformationKeys(this);
+            List<Pair<BigInteger>> cSubset = new ArrayList<>(nPairs);
+            for (int i = 0; i < nPairs; i++) {
+                if (!attributes.get(i).missing()) {
+                    cSubset.add(cPairs.get(i));
+                }
+            }
+
+            nPairs = cSubset.size();
+            List<BigInteger> bFactors = getBlindingFactors(nPairs);
+
+            // OKay, blinding factors still have issues.
+            // TODO: Re=encrypt subset with blinding factors...
+
+            // TODO: Encrypt with transformation keys.
+            //                BigInteger s_i = BigInteger.ZERO; //_transKeys.get(subName);
+//
+//                // Calculate cA'' and cB'''
+//                BigInteger cDblPrA = cPrimeA;
+//                BigInteger cDblPrB = cPrimeB.divide(cPrimeA.modPow(s_i, _prime));
+
+            // TODO: Generate a new message with cSubset, and add to return list.
+            Message newMsg = new Message(message.cSym(), cSubset);
+            messages.add(newMsg);
+        }
+
+        return messages;
     }
 
-    public void unregister(KeyServer keyServer) throws ServerException {
-        if (_keyServer == keyServer) {
-            _log.info("Unregistering list server '" + getName() + "' with key server '" + keyServer.getName() + "'.");
-            _keyServer = null;
-            _keyServer.unregister(this);
-            _registered = false;
-        } else {
-            throw new ServerException("Cannot unregister non-matching key server.");
-        }
-    }
+    private List<BigInteger> getBlindingFactors(int nFactors) {
+        int endIndex = nFactors - 1;
 
-    public void subscribe(User user) throws UserException {
-        String userName = user.getName();
-        if (!_subscribers.containsKey(userName)) {
-            _log.info("Subscribing user '" + userName + "' to list server '" + getName() + "'.");
-            _subscribers.put(userName, user);
-        } else {
-            throw new UserException("User '" + userName + "' already subscribed.");
-        }
-    }
+        // Get blinding factors, the product should be 1 mod p [i.e., (p + 1) mod p].
+        BigInteger one = BigInteger.ONE;
+        BigInteger primeP1 = _prime.add(one);
 
-    public void unsubscribe(User user) throws UserException {
-        String userName = user.getName();
-        if (_subscribers.containsKey(userName)) {
-            _log.info("Unsubscribing user '" + userName + "' from list server '" + getName() + "'.");
-            _subscribers.remove(userName);
-        } else {
-            throw new UserException("User '" + userName + "' not subscribed.");
+        BigDecimal root = BigMath.root(nFactors, new BigDecimal(primeP1));
+        BigInteger max = root.toBigInteger();
+        RandomBigInt rand = new RandomBigInt(one, max);
+
+        List<BigInteger> bFactors = new ArrayList<>(nFactors);
+
+        BigInteger prod = one;
+        BigInteger bf = prod;
+
+        for (int i = 0; i < endIndex; i++) {
+        //for (int i = 0; i < nFactors; i++) {
+            //bf = (new RandomBigInt(one, max)).get();
+            //max = max.divide(bf);
+            bf = rand.get();
+            prod = prod.multiply(bf);
+            bFactors.add(bf);
         }
+
+        bf = primeP1.divide(prod);
+        BigInteger rem = primeP1.mod(prod);
+        bFactors.add(bf);
+        prod = prod.multiply(bf);
+
+        // TODO: What to do with remainder?
+
+        // Distribute the error difference among the blinding factors.
+        BigInteger diff = primeP1.subtract(prod);
+//        BigInteger nF = BigInteger.valueOf(nFactors);
+//        BigInteger quot = diff.divide(nF);
+//        BigInteger rem = diff.mod(nF);
+//
+//        for (int i = 0; i < nFactors; i++) {
+//            bf = bFactors.get(i).add(quot);
+//            bFactors.set(i, bf);
+//        }
+//
+//        if (!rem.equals(BigInteger.ZERO)) {
+//            int index = ThreadLocalRandom.current().nextInt(0, endIndex);
+//            bf = bFactors.get(index).add(rem);
+//            bFactors.set(index, bf);
+//        }
+
+        prod = BigMath.product(bFactors);
+        BigInteger test = primeP1.mod(_prime);
+        assert(prod.equals(primeP1));
+
+        return bFactors;
     }
 
     public BigInteger publicKey() {
