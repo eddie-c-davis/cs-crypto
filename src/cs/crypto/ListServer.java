@@ -12,7 +12,10 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class ListServer extends ElgamalEntity {
     private static final int DEFAULT_CAPACITY = 100;
+    private static final String DEFAULT_NAME = "ListSever";
+
     private static Logger _log = Logger.getLogger(KeyServer.class.getName());
+    private static Map<String, ListServer> _serverMap = new HashMap<>();
 
     private boolean _registered = false;
     private RandomBigInt _rand;
@@ -22,12 +25,30 @@ public class ListServer extends ElgamalEntity {
     private Map<String, User> _subscribers = new HashMap<>();
     private List<BigInteger> _transKeys = new ArrayList<>();
 
-    public ListServer() {
-        this(DEFAULT_BITLEN);
+    public static ListServer get() {
+        return get(DEFAULT_NAME);
     }
 
-    public ListServer(int bitLen) {
-        super("ListServer", bitLen);
+    public static ListServer get(String serverName) {
+        if (!_serverMap.containsKey(serverName)) {
+            _serverMap.put(serverName, new ListServer(serverName));
+        }
+
+        // TODO: Pull list servers from RedisCache as serialized objects...
+
+        return _serverMap.get(serverName);
+    }
+
+    public ListServer() {
+        this(DEFAULT_NAME);
+    }
+
+    public ListServer(String name) {
+        super(name, DEFAULT_BITLEN);
+    }
+
+    public ListServer(String name, int bitLen) {
+        super(name, bitLen);
     }
 
     public void register(KeyServer keyServer) throws ServerException {

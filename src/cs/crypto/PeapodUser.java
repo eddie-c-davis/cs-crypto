@@ -5,6 +5,7 @@ import org.apache.log4j.Logger;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,12 +17,24 @@ import static cs.crypto.AES.encrypt;
 public class PeapodUser implements User {
     private static Logger _log = Logger.getLogger(PeapodUser.class.getName());
 
+    private static Map<String, PeapodUser> _userMap = new HashMap<>();
+
     private String _name;
     private Policy _policy;
     private RandomBigInt _rand;
 
     private BigInteger _gen;
     private BigInteger _prime;
+
+    public static PeapodUser get(String userName) {
+        if (!_userMap.containsKey(userName)) {
+            _userMap.put(userName, new PeapodUser(userName));
+        }
+
+        // TODO: Pull users from RedisCache as serialized objects...
+
+        return _userMap.get(userName);
+    }
 
     public PeapodUser() {
         this("");
@@ -198,7 +211,7 @@ public class PeapodUser implements User {
         List<Message> messages = server.receive(this);
         for (Message message : messages) {
             // TODO: Attempt to decrypt message...
-            
+
         }
 
 
