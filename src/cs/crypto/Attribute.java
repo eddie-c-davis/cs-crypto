@@ -1,11 +1,12 @@
 package cs.crypto;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 
 /**
  * Created by edavis on 10/16/16.
  */
-public class Attribute extends ElgamalEntity {
+public class Attribute extends ElgamalEntity implements Serializable {
     public static final char REQUIRED = 'v';
     public static final char FORBIDDEN = 'x';
     public static final char IRRELEVANT = '*';

@@ -1,5 +1,6 @@
 package cs.crypto;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -7,7 +8,7 @@ import java.util.List;
 /**
  * Created by edavis on 10/16/16.
  */
-public class Policy {
+public class Policy implements Serializable {
     private List<Attribute> _attributes = new ArrayList<>();
 
     private String _name;
@@ -89,12 +90,17 @@ public class Policy {
 
     @Override
     public String toString() {
-        String str = String.format("%s: <", _name);
-        for (Attribute attribute : _attributes) {
-            str = String.format("%s%c,", str, attribute.getValue());
-        }
+        String str;
+        if (_name != null && _key != null) {
+            str = String.format("%s: <", _name);
+            for (Attribute attribute : _attributes) {
+                str = String.format("%s%c,", str, attribute.getValue());
+            }
 
-        str = String.format("%s>", str);
+            str = String.format("%s>", str);
+        } else {
+            str = "";
+        }
 
         return str;
     }

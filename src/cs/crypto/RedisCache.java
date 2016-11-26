@@ -15,16 +15,16 @@ public class RedisCache  implements Map<String, String> {
 
     private static Logger _log = Logger.getLogger(RedisCache.class.getName());
 
-    private static RedisCache _instance = null;
+    private static RedisCache _cache = null;
 
     private Jedis _jedis;
 
     public static RedisCache instance() {
-        if (_instance == null) {
-            _instance = new RedisCache();
+        if (_cache == null) {
+            _cache = new RedisCache();
         }
 
-        return _instance;
+        return _cache;
     }
 
     private RedisCache() {
@@ -60,6 +60,12 @@ public class RedisCache  implements Map<String, String> {
 
     public String get(Object obj) {
         return _jedis.get(obj.toString());
+    }
+
+    public byte[] getBytes(Object obj) {
+        String str = get(obj);
+
+        return Bytes.toBytes(str);
     }
 
     public int size()
@@ -100,6 +106,13 @@ public class RedisCache  implements Map<String, String> {
         _jedis.set(key, val);
 
         return val;
+    }
+
+    public byte[] putBytes(String key, byte[] bytes) {
+        String str = Bytes.toString(bytes);
+        put(key, str);
+
+        return bytes;
     }
 
     public void putAll(Map<? extends String,? extends String> map) {

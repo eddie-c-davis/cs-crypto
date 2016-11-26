@@ -1,5 +1,6 @@
 package cs.crypto;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.Random;
@@ -7,7 +8,7 @@ import java.util.Random;
 /**
  * Created by edavis on 10/4/16.
  */
-public class RandomBigInt {
+public class RandomBigInt implements Serializable {
     BigInteger _begin;
     BigInteger _end;
     Random _rand;

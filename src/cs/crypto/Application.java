@@ -18,6 +18,10 @@ import java.util.Arrays;
 public class Application {
     public static void main(String[] args) {
         System.out.println("Running 'Peapod' web app...");
+
+        // Remove key server instance from RedisCache.
+        RedisCache.instance().remove(KeyServer.SERVER_NAME);
+
         ApplicationContext context = SpringApplication.run(Application.class, args);
     }
 }

@@ -2,6 +2,11 @@ package cs.crypto;
 
 import org.json.JSONObject;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.sql.Timestamp;
+import java.util.Date;
+
 /**
  * Created by edavis on 11/25/16.
  */
@@ -23,11 +28,13 @@ public class RequestException extends Exception {
     }
 
     public String toJSON() {
+        StringWriter sw = new StringWriter();
+        this.printStackTrace(new PrintWriter(sw));
+
         JSONObject json = new JSONObject();
         json.put("message", this.getMessage());
-        // TODO: Finish this up...
-        //json.put("trace", Errors.stackTraceToString(ex));
-        //json.put("time", Dates.getTimestamp());
+        json.put("trace", sw.toString());
+        json.put("time", (new Timestamp((new Date()).getTime())).toString());
 
         return json.toString();
     }

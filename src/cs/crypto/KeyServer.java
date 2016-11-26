@@ -2,7 +2,9 @@ package cs.crypto;
 
 import com.sun.corba.se.spi.activation.Server;
 import org.apache.log4j.Logger;
+import org.json.JSONObject;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,8 +14,11 @@ import java.util.Map;
 /**
  * Created by edavis on 10/17/16.
  */
-public class KeyServer extends ElgamalEntity {
+public class KeyServer extends ElgamalEntity implements Serializable {
+    public static final String SERVER_NAME = "KeyServer";
+
     private static Logger _log = Logger.getLogger(KeyServer.class.getName());
+    private static KeyServer _keyServer = null;
 
     private boolean _authorized = false;
 
@@ -26,15 +31,52 @@ public class KeyServer extends ElgamalEntity {
     private List<ListServer> _listServers;
     private List<User> _regUsers;
 
-    public KeyServer() {
+    public static KeyServer get() {
+        if (_keyServer == null) {
+            RedisCache cache = RedisCache.instance();
+            String key = String.format("keyserv-%s", SERVER_NAME.toLowerCase());
+            String cacheData = cache.get(key);
+
+            if (cacheData != null && cacheData.length() > 0) {
+                _keyServer = (KeyServer) Bytes.fromString(cacheData);
+            } else {
+                _keyServer = new KeyServer();
+                _keyServer.init();
+
+                byte[] bytes = Bytes.toBytes(_keyServer);
+                cacheData = Bytes.toString(bytes);
+                cache.put(key, cacheData);
+            }
+        }
+
+        return _keyServer;
+    }
+
+//    private static KeyServer fromJSON(String json) {
+//        JSONObject jsonObj = new JSONObject(json);
+//        return _keyServer;
+//    }
+
+    private KeyServer() {
         this(DEFAULT_BITLEN);
     }
 
-    public KeyServer(int bitLen) {
-        super("KeyServer", bitLen);
+    private KeyServer(int bitLen) {
+        super(SERVER_NAME, bitLen);
         _listServers = new ArrayList<>();
         _regUsers = new ArrayList<>();
     }
+
+//    public String toJSON() {
+//        JSONObject json = new JSONObject();
+//
+//        json.put("name", _name);
+//        json.put("gen", _gen.toString());
+//        json.put("prime", _prime.toString());
+//        json.put("auth", _authorized ? "1" : "0");
+//
+//        return json.toString();
+//    }
 
     public void init() {
         _log.info("Initializing key server '" + getName() + "'");
@@ -56,7 +98,6 @@ public class KeyServer extends ElgamalEntity {
             } catch (ServerException se) {
                 _log.error("Error setting private key for attribute '" + attribute + "'");
             }
-
 
             BigInteger s_u = _kPr.subtract(x_u);
             _transKeys.put(attrName, s_u);

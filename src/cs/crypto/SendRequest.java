@@ -1,7 +1,7 @@
 package cs.crypto;
 
 import org.apache.log4j.Logger;
-import org.codehaus.jettison.json.JSONObject;
+import org.json.JSONObject;
 
 /**
  * Created by edavis on 11/25/16.
@@ -21,7 +21,12 @@ public class SendRequest implements Request {
         String json = "";
 
         try {
+            KeyServer keyServer = KeyServer.get();
+            _user.authenticate(keyServer);
+
             ListServer listServer = ListServer.get();
+            listServer.subscribe(_user);
+
             _user.send(listServer, _message.body());
 
             JSONObject obj = new JSONObject();

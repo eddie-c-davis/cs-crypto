@@ -2,6 +2,7 @@ package cs.crypto;
 
 import org.apache.log4j.Logger;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
@@ -10,31 +11,46 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * Created by edavis on 10/16/16.
  */
-public class ListServer extends ElgamalEntity {
+public class ListServer extends ElgamalEntity implements Serializable {
     private static final int DEFAULT_CAPACITY = 100;
-    private static final String DEFAULT_NAME = "ListSever";
+    private static final String DEFAULT_NAME = "ListServer";
 
-    private static Logger _log = Logger.getLogger(KeyServer.class.getName());
+    private static Logger _log = Logger.getLogger(ListServer.class.getName());
     private static Map<String, ListServer> _serverMap = new HashMap<>();
 
     private boolean _registered = false;
-    private RandomBigInt _rand;
     private KeyServer _keyServer;
+    private RandomBigInt _rand;
 
     private List<Message> _messages = new ArrayList<>(DEFAULT_CAPACITY);
     private Map<String, User> _subscribers = new HashMap<>();
     private List<BigInteger> _transKeys = new ArrayList<>();
 
-    public static ListServer get() {
+    public static ListServer get() throws ServerException {
         return get(DEFAULT_NAME);
     }
 
-    public static ListServer get(String serverName) {
+    public static ListServer get(String serverName) throws ServerException {
         if (!_serverMap.containsKey(serverName)) {
-            _serverMap.put(serverName, new ListServer(serverName));
-        }
+            RedisCache cache = RedisCache.instance();
+            String key = String.format("listserv-%s", serverName.toLowerCase());
+            String cacheData = cache.get(key);
 
-        // TODO: Pull list servers from RedisCache as serialized objects...
+            ListServer listServer;
+            if (cacheData != null && cacheData.length() > 0) {
+                listServer = (ListServer) Bytes.fromString(cacheData);
+            } else {
+                listServer = new ListServer(serverName);
+                KeyServer keyServer = KeyServer.get();
+                listServer.register(keyServer);
+
+                byte[] bytes = Bytes.toBytes(listServer);
+                cacheData = Bytes.toString(bytes);
+                cache.put(key, cacheData);
+            }
+
+            _serverMap.put(serverName, listServer);
+        }
 
         return _serverMap.get(serverName);
     }
@@ -177,6 +193,8 @@ public class ListServer extends ElgamalEntity {
             // TODO: Generate a new message with cSubset, and add to return list.
             Message newMsg = new Message(message.cSym(), cSubset);
             messages.add(newMsg);
+
+            // TODO: Figure out how to store messages in RedisCache
         }
 
         return messages;

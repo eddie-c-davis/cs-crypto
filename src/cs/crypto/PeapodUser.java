@@ -2,6 +2,7 @@ package cs.crypto;
 
 import org.apache.log4j.Logger;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
@@ -14,7 +15,7 @@ import static cs.crypto.AES.encrypt;
 /**
  * Created by edavis on 11/22/16.
  */
-public class PeapodUser implements User {
+public class PeapodUser implements User, Serializable {
     private static Logger _log = Logger.getLogger(PeapodUser.class.getName());
 
     private static Map<String, PeapodUser> _userMap = new HashMap<>();
@@ -28,10 +29,24 @@ public class PeapodUser implements User {
 
     public static PeapodUser get(String userName) {
         if (!_userMap.containsKey(userName)) {
-            _userMap.put(userName, new PeapodUser(userName));
-        }
+            RedisCache cache = RedisCache.instance();
+            String key = String.format("user-%s", userName.toLowerCase());
+            String cacheData = cache.get(key);
 
-        // TODO: Pull users from RedisCache as serialized objects...
+            PeapodUser user;
+            if (cacheData != null && cacheData.length() > 0) {
+                user = (PeapodUser) Bytes.fromString(cacheData);
+            } else {
+                user = new PeapodUser(userName);
+                byte[] bytes = Bytes.toBytes(user);
+                cacheData = Bytes.toString(bytes);
+                cache.put(key, cacheData);
+
+                assert(Bytes.equals(bytes, Bytes.toBytes(cacheData)));
+            }
+
+            _userMap.put(userName, user);
+        }
 
         return _userMap.get(userName);
     }
