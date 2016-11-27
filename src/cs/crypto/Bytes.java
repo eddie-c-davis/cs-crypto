@@ -4,6 +4,8 @@ import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.util.Base64;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Created by edavis on 11/26/16.
@@ -20,11 +22,22 @@ public class Bytes {
     }
 
     public static byte[] toBytes(Serializable object) {
+        return toBytes(object, false);
+    }
+
+    public static byte[] toBytes(Serializable object, boolean compressed) {
         byte[] bytes = new byte[0];
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        ObjectOutput out;
 
         try {
-            ObjectOutput out = new ObjectOutputStream(bos);
+            if (compressed) {
+                GZIPOutputStream gzOut = new GZIPOutputStream(bos);
+                out = new ObjectOutputStream(gzOut);
+            } else {
+                out = new ObjectOutputStream(bos);
+            }
+
             out.writeObject(object);
             out.flush();
             bytes = bos.toByteArray();
@@ -37,11 +50,22 @@ public class Bytes {
     }
 
     public static Object fromBytes(byte[] bytes) {
+        return fromBytes(bytes, false);
+    }
+
+    public static Object fromBytes(byte[] bytes, boolean compressed) {
         Object object = null;
         ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+        ObjectInput in;
 
         try {
-            ObjectInput in = new ObjectInputStream(bis);
+            if (compressed) {
+                GZIPInputStream gzIn = new GZIPInputStream(bis);
+                in = new ObjectInputStream(gzIn);
+            } else {
+                in = new ObjectInputStream(bis);
+            }
+
             object = in.readObject();
             in.close();
         } catch (IOException ex) {      // Log I/O errors and continue...
