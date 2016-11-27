@@ -10,14 +10,16 @@ import java.util.List;
 public interface User {
     //void init();
 
-    void send(ListServer server, String message) throws GeneralSecurityException, MessageException, UserException;
+    Message send(ListServer server, String message) throws GeneralSecurityException, MessageException, UserException;
+
     void send(User receiver, String message);
     void send(User receiver, long m);
     void send(User receiver, BigInteger m);
 
+    List<Message> receive(ListServer server);
+
     BigInteger receive(User sender, BigInteger c);
     BigInteger receive(User sender, BigInteger c1, BigInteger c2);
-    BigInteger receive(ListServer server);
 
     String getName();
     Policy getPolicy();

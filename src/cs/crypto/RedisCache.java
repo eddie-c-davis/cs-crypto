@@ -102,17 +102,22 @@ public class RedisCache  implements Map<String, String> {
         return vals;
     }
 
+    public String put(String key, double number) {
+        return put(key, String.format("%lf", number));
+    }
+
+    public String put(String key, int number) {
+        return put(key, String.format("%d", number));
+    }
+
+    public String put(String key, byte[] bytes) {
+        return put(key, Bytes.toString(bytes));
+    }
+
     public String put(String key, String val) {
         _jedis.set(key, val);
 
         return val;
-    }
-
-    public byte[] putBytes(String key, byte[] bytes) {
-        String str = Bytes.toString(bytes);
-        put(key, str);
-
-        return bytes;
     }
 
     public void putAll(Map<? extends String,? extends String> map) {

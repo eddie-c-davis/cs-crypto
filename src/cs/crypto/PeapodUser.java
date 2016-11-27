@@ -33,10 +33,12 @@ public class PeapodUser implements User, Serializable {
             String key = String.format("user-%s", userName.toLowerCase());
             String cacheData = cache.get(key);
 
-            PeapodUser user;
+            PeapodUser user = null;
             if (cacheData != null && cacheData.length() > 0) {
                 user = (PeapodUser) Bytes.fromString(cacheData);
-            } else {
+            }
+
+            if (user == null) {
                 user = new PeapodUser(userName);
                 byte[] bytes = Bytes.toBytes(user);
                 cacheData = Bytes.toString(bytes);
@@ -63,7 +65,7 @@ public class PeapodUser implements User, Serializable {
         _policy = PolicyList.get().map().get(getName());
     }
 
-    public void send(ListServer server, String message) throws GeneralSecurityException, MessageException, UserException {
+    public Message send(ListServer server, String message) throws GeneralSecurityException, MessageException, UserException {
         BigInteger g = _gen;    // g is the global generator (originating from the key server).
         BigInteger p = _prime;  // p is our big prime.
 
@@ -107,7 +109,7 @@ public class PeapodUser implements User, Serializable {
         logMsg += "] to '" + server.getName() + "'";
         _log.info(logMsg);
 
-        server.deposit(this, cSym, cList);
+        return server.deposit(this, cSym, cList);
     }
 
     private List<BigInteger> getPubKeys() {
@@ -220,17 +222,21 @@ public class PeapodUser implements User, Serializable {
         return receive(sender, c, BigInteger.ZERO);
     }
 
-    public BigInteger receive(ListServer server) { //}, BigInteger cA, BigInteger cB) {
+    public List<Message> receive(ListServer server) { //}, BigInteger cA, BigInteger cB) {
         BigInteger m = BigInteger.ZERO; //cB.divide(cA.modPow(_kPr, _prime));
 
-        List<Message> messages = server.receive(this);
-        for (Message message : messages) {
+        List<Message> encryptedMessages = server.receive(this);
+        List<Message> decryptedMessages = new ArrayList<>(encryptedMessages.size());
+
+        for (Message message : encryptedMessages) {
             // TODO: Attempt to decrypt message...
 
+            if (!message.encrypted()) {
+                decryptedMessages.add(message);
+            }
         }
 
-
-        return m;
+        return decryptedMessages;
     }
 
     public BigInteger decrypt(BigInteger[] c) {

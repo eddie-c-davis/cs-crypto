@@ -1,5 +1,7 @@
 package cs.crypto;
 
+import org.apache.log4j.Logger;
+
 import java.io.*;
 import java.util.Base64;
 
@@ -7,6 +9,8 @@ import java.util.Base64;
  * Created by edavis on 11/26/16.
  */
 public class Bytes {
+    private static Logger _log = Logger.getLogger(Bytes.class.getName());
+
     public static byte[] toBytes(String string) {
         //Base64.encode
         Base64.Decoder decoder = Base64.getDecoder();
@@ -40,8 +44,8 @@ public class Bytes {
             ObjectInput in = new ObjectInputStream(bis);
             object = in.readObject();
             in.close();
-        } catch (IOException ex) {
-            // Ignore close exception
+        } catch (IOException ex) {      // Log I/O errors and continue...
+            _log.warn(ex.toString());
         } finally {
             return object;
         }

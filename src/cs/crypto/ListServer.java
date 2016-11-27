@@ -36,18 +36,21 @@ public class ListServer extends ElgamalEntity implements Serializable {
             String key = String.format("listserv-%s", serverName.toLowerCase());
             String cacheData = cache.get(key);
 
-            ListServer listServer;
+            ListServer listServer = null;
             if (cacheData != null && cacheData.length() > 0) {
                 listServer = (ListServer) Bytes.fromString(cacheData);
-            } else {
-                listServer = new ListServer(serverName);
-                KeyServer keyServer = KeyServer.get();
-                listServer.register(keyServer);
+            }
 
+            if (listServer == null) {
+                listServer = new ListServer(serverName);
                 byte[] bytes = Bytes.toBytes(listServer);
                 cacheData = Bytes.toString(bytes);
                 cache.put(key, cacheData);
             }
+
+            // Always register with the key server...
+            KeyServer keyServer = KeyServer.instance();
+            listServer.register(keyServer);
 
             _serverMap.put(serverName, listServer);
         }
@@ -119,7 +122,7 @@ public class ListServer extends ElgamalEntity implements Serializable {
         }
     }
 
-    public void deposit(User sender, BigInteger cSym, List<Pair<BigInteger>> cList) throws UserException {
+    public Message deposit(User sender, BigInteger cSym, List<Pair<BigInteger>> cList) throws UserException {
         String senderName = sender.getName();
         if (_subscribers.containsKey(senderName)) {
 
@@ -134,6 +137,8 @@ public class ListServer extends ElgamalEntity implements Serializable {
             int nKeys = cList.size();
             List<Pair<BigInteger>> cPrime = new ArrayList<>(nKeys);
 
+            BigInteger p = this.prime();
+
             for (int i = 0; i < nKeys; i++) {
                 BigInteger s = _transKeys.get(i);
                 Pair<BigInteger> c = cList.get(i);
@@ -141,7 +146,7 @@ public class ListServer extends ElgamalEntity implements Serializable {
                 BigInteger cB = c.second();
 
                 BigInteger cPrA = cA;
-                BigInteger cPrB = cB.multiply((cA.modPow(s, _prime)));
+                BigInteger cPrB = cB.multiply((cA.modPow(s, p)));
                 cPrime.add(new Pair<>(cPrA, cPrB));
             }
 
@@ -153,11 +158,27 @@ public class ListServer extends ElgamalEntity implements Serializable {
             logMsg += "] from user '" + senderName + "'.";
             _log.info(logMsg);
 
-            Message msg = new Message(senderName, cSym, cPrime);
-            _messages.add(msg);
+            return addMessage(new Message(senderName, cSym, cPrime));
         } else {
             throw new UserException("ListServer cannot receive from unsubscribed user '" + senderName + "'.");
         }
+    }
+
+    private Message addMessage(Message message) {
+        _messages.add(message);
+
+        RedisCache cache = RedisCache.instance();
+        String prefix = String.format("listserv-%s-message-", _name.toLowerCase());
+
+        int count = _messages.size();
+        String key = String.format("%scount", prefix);
+        cache.put(key, count);
+
+        key = String.format("%s%d", prefix, count);
+        byte[] bytes = Bytes.toBytes(message);
+        cache.put(key, bytes);
+
+        return message;
     }
 
     public List<Message> receive(User receiver) {
@@ -181,20 +202,18 @@ public class ListServer extends ElgamalEntity implements Serializable {
             List<BigInteger> bFactors = getBlindingFactors(nPairs);
 
             // OKay, blinding factors still have issues.
-            // TODO: Re=encrypt subset with blinding factors...
+            // TODO: Re-encrypt subset with blinding factors...
 
             // TODO: Encrypt with transformation keys.
-            //                BigInteger s_i = BigInteger.ZERO; //_transKeys.get(subName);
+            // BigInteger s_i = BigInteger.ZERO; //_transKeys.get(subName);
 //
-//                // Calculate cA'' and cB'''
-//                BigInteger cDblPrA = cPrimeA;
-//                BigInteger cDblPrB = cPrimeB.divide(cPrimeA.modPow(s_i, _prime));
+//          // Calculate cA'' and cB'''
+//          BigInteger cDblPrA = cPrimeA;
+//          BigInteger cDblPrB = cPrimeB.divide(cPrimeA.modPow(s_i, _prime));
 
             // TODO: Generate a new message with cSubset, and add to return list.
             Message newMsg = new Message(message.cSym(), cSubset);
             messages.add(newMsg);
-
-            // TODO: Figure out how to store messages in RedisCache
         }
 
         return messages;
@@ -262,5 +281,23 @@ public class ListServer extends ElgamalEntity implements Serializable {
 
     public boolean registered() {
         return _registered;
+    }
+
+    @Override
+    public BigInteger generator() {
+        if (_gen == null) {
+            _gen = _keyServer.generator();
+        }
+
+        return _gen;
+    }
+
+    @Override
+    public BigInteger prime() {
+        if (_prime == null) {
+            _prime = _keyServer.prime();
+        }
+
+        return _prime;
     }
 }

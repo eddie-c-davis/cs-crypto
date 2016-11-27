@@ -21,16 +21,20 @@ public class SendRequest implements Request {
         String json = "";
 
         try {
-            KeyServer keyServer = KeyServer.get();
+            KeyServer keyServer = KeyServer.instance();
             _user.authenticate(keyServer);
 
             ListServer listServer = ListServer.get();
             listServer.subscribe(_user);
 
-            _user.send(listServer, _message.body());
+            Message encrypted = _user.send(listServer, _message.body());
 
             JSONObject obj = new JSONObject();
-            // TODO: Populate object...
+            obj.put("sender", _user.getName());
+            obj.put("body", _message.body());
+            obj.put("listserver", listServer.getName());
+            obj.put("keyserver", keyServer.getName());
+            obj.put("encrypted", encrypted.toJSON());
             json = obj.toString();
         } catch (Exception ex) {
             throw new RequestException(ex.getMessage(), ex);

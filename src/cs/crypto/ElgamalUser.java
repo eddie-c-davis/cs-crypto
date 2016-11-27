@@ -1,6 +1,7 @@
 package cs.crypto;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.DatatypeConverter;
 
@@ -32,7 +33,7 @@ public class ElgamalUser extends ElgamalEntity implements User {
         super(name, g, h, p);
     }
 
-    public void send(ListServer server, String message) throws MessageException, UserException {
+    public Message send(ListServer server, String message) throws MessageException, UserException {
         BigInteger x = _kPr;    // x is x_u, the user's private key.
         BigInteger g = _gen;    // g is the global generator (originating from the key server).
         BigInteger p = _prime;  // p is our big prime.
@@ -46,7 +47,12 @@ public class ElgamalUser extends ElgamalEntity implements User {
         BigInteger cA = g.modPow(r, p);
         BigInteger cB = m.multiply(y.modPow(r, p)).mod(p);
 
+        Pair<BigInteger> pair = new Pair<>(cA, cB);
+        List<Pair<BigInteger>> list = new ArrayList<>(1);
+        list.add(pair);
+
         //server.receive(this, cA, cB);
+        return new Message(_name, BigInteger.ZERO, list);
     }
 
     public void send(User receiver, String message) {
@@ -97,13 +103,8 @@ public class ElgamalUser extends ElgamalEntity implements User {
         return receive(sender, c, BigInteger.ZERO);
     }
 
-    public BigInteger receive(ListServer server) { //}, BigInteger cA, BigInteger cB) {
-
-        BigInteger m = BigInteger.ZERO; //cB.divide(cA.modPow(_kPr, _prime));
-
-        // TODO: Determine how to turn m back into a string...
-
-        return m;
+    public List<Message> receive(ListServer server) { //}, BigInteger cA, BigInteger cB) {
+        return new ArrayList<Message>();
     }
 
     public BigInteger decrypt(BigInteger[] c) {

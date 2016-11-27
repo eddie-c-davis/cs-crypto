@@ -31,15 +31,17 @@ public class KeyServer extends ElgamalEntity implements Serializable {
     private List<ListServer> _listServers;
     private List<User> _regUsers;
 
-    public static KeyServer get() {
+    public static KeyServer instance() {
         if (_keyServer == null) {
             RedisCache cache = RedisCache.instance();
-            String key = String.format("keyserv-%s", SERVER_NAME.toLowerCase());
+            String key = cacheKey();
             String cacheData = cache.get(key);
 
             if (cacheData != null && cacheData.length() > 0) {
                 _keyServer = (KeyServer) Bytes.fromString(cacheData);
-            } else {
+            }
+
+            if (_keyServer == null) {
                 _keyServer = new KeyServer();
                 _keyServer.init();
 
@@ -52,10 +54,9 @@ public class KeyServer extends ElgamalEntity implements Serializable {
         return _keyServer;
     }
 
-//    private static KeyServer fromJSON(String json) {
-//        JSONObject jsonObj = new JSONObject(json);
-//        return _keyServer;
-//    }
+    public static String cacheKey() {
+        return String.format("keyserv-%s", SERVER_NAME.toLowerCase());
+    }
 
     private KeyServer() {
         this(DEFAULT_BITLEN);
@@ -66,17 +67,6 @@ public class KeyServer extends ElgamalEntity implements Serializable {
         _listServers = new ArrayList<>();
         _regUsers = new ArrayList<>();
     }
-
-//    public String toJSON() {
-//        JSONObject json = new JSONObject();
-//
-//        json.put("name", _name);
-//        json.put("gen", _gen.toString());
-//        json.put("prime", _prime.toString());
-//        json.put("auth", _authorized ? "1" : "0");
-//
-//        return json.toString();
-//    }
 
     public void init() {
         _log.info("Initializing key server '" + getName() + "'");

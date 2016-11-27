@@ -10,14 +10,7 @@ public class SendTest {
         String user = args[0];
         String body = args[1];
 
-        SendRequest req = new SendRequest(user, body);
-
-        try {
-            String json = req.run();
-            System.out.println(json);
-        } catch (Exception ex) {
-            System.out.println(ex.toString());
-            ex.printStackTrace();
-        }
+        TestRunner runner = new TestRunner(new SendRequest(user, body));
+        runner.run();
     }
 }

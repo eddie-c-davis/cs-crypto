@@ -1,9 +1,11 @@
 package cs.crypto;
 
+import java.io.Serializable;
+
 /**
  * Created by edavis on 11/24/16.
  */
-public class Pair<T> {
+public class Pair<T> implements Serializable {
     private T _first; //first member of pair
     private T _second; //second member of pair
 

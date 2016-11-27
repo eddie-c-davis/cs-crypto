@@ -38,7 +38,7 @@ public class Main {
         User bob = new PeapodUser("Bob");
 
         // Initialize key server (generate K).
-        KeyServer keyServer = KeyServer.get();
+        KeyServer keyServer = KeyServer.instance();
         print("Initializing key server...");
         keyServer.init();
 

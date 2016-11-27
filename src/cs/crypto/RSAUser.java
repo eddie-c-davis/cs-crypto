@@ -4,6 +4,7 @@ import org.bouncycastle.jcajce.provider.asymmetric.RSA;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 //import javax.xml.bind.DatatypeConverter;
@@ -104,8 +105,9 @@ public class RSAUser implements User, RSACipher {
         _d = _e.modInverse(phi);        // Compute d...
     }
 
-    public void send(ListServer server, String message) {
+    public Message send(ListServer server, String message) {
         // TODO: Implement maybe?
+        return new Message(_name, message);
     }
 
     public Policy getPolicy() {
@@ -113,9 +115,9 @@ public class RSAUser implements User, RSACipher {
         return null;
     }
 
-    public BigInteger receive(ListServer server) { //}, BigInteger cA, BigInteger cB) {
+    public List<Message> receive(ListServer server) {
         // TODO: Implement maybe?
-        return BigInteger.ZERO;
+        return new ArrayList<Message>();
     }
 
     public BigInteger encrypt(BigInteger msg, BigInteger[] k) {

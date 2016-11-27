@@ -20,7 +20,7 @@ public class Application {
         System.out.println("Running 'Peapod' web app...");
 
         // Remove key server instance from RedisCache.
-        RedisCache.instance().remove(KeyServer.SERVER_NAME);
+        RedisCache.instance().remove(KeyServer.cacheKey());
 
         ApplicationContext context = SpringApplication.run(Application.class, args);
     }

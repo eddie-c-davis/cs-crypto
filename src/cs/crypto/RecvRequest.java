@@ -3,6 +3,8 @@ package cs.crypto;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 
+import java.util.List;
+
 /**
  * Created by edavis on 11/26/16.
  */
@@ -19,16 +21,27 @@ public class RecvRequest implements Request {
         String json = "";
 
         try {
-            KeyServer keyServer = KeyServer.get();
+            KeyServer keyServer = KeyServer.instance();
             _user.authenticate(keyServer);
 
             ListServer listServer = ListServer.get();
             listServer.subscribe(_user);
 
-            _user.receive(listServer);
+            List<Message> messages = _user.receive(listServer);
 
             JSONObject obj = new JSONObject();
-            // TODO: Populate object...
+            obj.put("receiver", _user.getName());
+            obj.put("listserver", listServer.getName());
+            obj.put("keyserver", keyServer.getName());
+
+            String msgStr = "[";
+            for (Message message : messages) {
+                msgStr = String.format("%s%s,", msgStr, message.toJSON());
+            }
+
+            msgStr = String.format("%s]", msgStr);
+            obj.put("messages", msgStr);
+
             json = obj.toString();
         } catch (Exception ex) {
             throw new RequestException(ex.getMessage(), ex);

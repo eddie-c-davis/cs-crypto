@@ -10,7 +10,7 @@ import java.util.Date;
 /**
  * Created by edavis on 11/25/16.
  */
-public class RequestException extends Exception {
+public class RequestException extends Exception implements Jsonizable {
     public RequestException() {
         super();
     }
