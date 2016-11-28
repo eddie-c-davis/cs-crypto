@@ -39,6 +39,7 @@ public class ListServer extends ElgamalEntity implements Serializable {
             ListServer listServer = null;
             if (cacheData != null && cacheData.length() > 0) {
                 listServer = (ListServer) Bytes.fromString(cacheData);
+                listServer.readMessages(cache);
             }
 
             if (listServer == null) {
@@ -150,24 +151,24 @@ public class ListServer extends ElgamalEntity implements Serializable {
         }
     }
 
-    private List<Pair<BigInteger>> transform(List<Pair<BigInteger>> cPairs) {
-        int nPairs = cPairs.size();
-        List<Integer> indices = new ArrayList<>(nPairs);
-        for (int i = 0; i < cPairs.size(); i++) {
-            indices.add(i);
-        }
+//    private List<Pair<BigInteger>> transform(List<Pair<BigInteger>> cPairs) {
+//        int nPairs = cPairs.size();
+//        List<Integer> indices = new ArrayList<>(nPairs);
+//        for (int i = 0; i < cPairs.size(); i++) {
+//            indices.add(i);
+//        }
+//
+//        return transform(cPairs, indices);
+//    }
 
-        return transform(cPairs, indices);
-    }
-
-    private List<Pair<BigInteger>> transform(List<Pair<BigInteger>> cPairs, List<Integer> indices) {
+    private List<Pair<BigInteger>> transform(List<Pair<BigInteger>> cPairs) { //}, List<Integer> indices) {
         int nKeys = cPairs.size();
         List<Pair<BigInteger>> cPrime = new ArrayList<>(nKeys);
 
         BigInteger p = this.prime();
         for (int i = 0; i < nKeys; i++) {
-            int j = indices.get(i);
-            BigInteger s = _transKeys.get(j);
+            //int j = indices.get(i);
+            BigInteger s = _transKeys.get(i);
             Pair<BigInteger> c = cPairs.get(i);
             BigInteger cA = c.first();
             BigInteger cB = c.second();
@@ -197,6 +198,21 @@ public class ListServer extends ElgamalEntity implements Serializable {
         return message;
     }
 
+    public void readMessages(RedisCache cache) {
+        String prefix = String.format("listserv-%s-message-", _name.toLowerCase());
+        String key = String.format("%scount", prefix);
+        int count = Integer.parseInt(cache.get(key));
+
+        for (int i = 1; i <= count; i++) {
+            key = String.format("%s%d", prefix, i);
+            String msgStr = cache.get(key);
+            if (msgStr != null && msgStr.length() > 0) {
+                Message message = (Message) Bytes.fromString(msgStr);
+                _messages.add(message);
+            }
+        }
+    }
+
     public List<Message> receive(User receiver) {
         List<Message> messages = new ArrayList<>();
 
@@ -208,34 +224,37 @@ public class ListServer extends ElgamalEntity implements Serializable {
             int nPairs = cPairs.size();
 
             List<Pair<BigInteger>> cSubset = new ArrayList<>(nPairs);
-            List<Integer> indices = new ArrayList<>(nPairs);
+            //List<Integer> indices = new ArrayList<>(nPairs);
 
             for (int i = 0; i < nPairs; i++) {
                 if (!attributes.get(i).missing()) {
                     cSubset.add(cPairs.get(i));
-                    indices.add(i);
+                    //indices.add(i);
+                } else {
+                    cSubset.add(new Pair<>(BigInteger.ONE, BigInteger.ONE));
                 }
             }
 
-            nPairs = cSubset.size();
+            //nPairs = cSubset.size();
             List<BigInteger> bFactors = getBlindingFactors(nPairs);
 
             // TODO: Encrypt blinding factors...
             // Okay, blinding factors still have issues.
 
             Policy msgPolicy = PolicyList.get().map().get(message.from());
+            // TODO: pubKeys are coming back null, need to fix.
             List<BigInteger> pubKeys = msgPolicy.getPublicKeys();
 
             List<Pair<BigInteger>> bfPairs = new ArrayList<>(nPairs);
             for (int i = 0; i < nPairs; i++) {
-                int j = indices.get(i);
-                BigInteger y = pubKeys.get(j);
+                //int j = indices.get(i);
+                BigInteger y = pubKeys.get(i);
                 Pair<BigInteger> bfC = encrypt(bFactors.get(i), _prime, _gen, y);
                 bfPairs.add(bfC);
             }
 
             // TODO: Encrypt with transformation keys.
-            bfPairs = transform(bfPairs, indices);
+            bfPairs = transform(bfPairs); //, indices);
 
             // TODO: "Homomorphically" multiply binding factors...
             for (int i = 0; i < nPairs; i++) {

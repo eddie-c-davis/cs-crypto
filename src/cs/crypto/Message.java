@@ -61,16 +61,20 @@ public class Message implements Serializable, Jsonizable {
 
     public String toJSON() {
         JSONObject obj = new JSONObject();
-        obj.put("cSym", _cSym.toString());
+        if (encrypted()) {
+            obj.put("cSym", _cSym.toString());
 
-        String pairStr = "[";
-        for (Pair<BigInteger> pair : _cPairs) {
-            pairStr = String.format("%s%s,", pairStr, pair.toString());
+            String pairStr = "[";
+            for (Pair<BigInteger> pair : _cPairs) {
+                pairStr = String.format("%s%s,", pairStr, pair.toString());
+            }
+
+            pairStr = String.format("%s]", pairStr);
+            obj.put("cPairs", pairStr);
+        } else {
+            obj.put("from", _from);
+            obj.put("body", _body);
         }
-
-        pairStr = String.format("%s]", pairStr);
-
-        obj.put("cPairs", pairStr);
 
         return obj.toString();
     }

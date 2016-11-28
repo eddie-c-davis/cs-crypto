@@ -27,6 +27,8 @@ public class PeapodUser implements User, Serializable {
     private BigInteger _gen;
     private BigInteger _prime;
 
+    private List<BigInteger> _privKeys;
+
     public static PeapodUser get(String userName) {
         if (!_userMap.containsKey(userName)) {
             RedisCache cache = RedisCache.instance();
@@ -211,48 +213,44 @@ public class PeapodUser implements User, Serializable {
         return receive(sender, c, BigInteger.ZERO);
     }
 
-    public List<Message> receive(ListServer server) { //}, BigInteger cA, BigInteger cB) {
-        BigInteger m = BigInteger.ZERO; //cB.divide(cA.modPow(_kPr, _prime));
-
+    public List<Message> receive(ListServer server) throws GeneralSecurityException {
         List<Message> encryptedMessages = server.receive(this);
         List<Message> decryptedMessages = new ArrayList<>(encryptedMessages.size());
 
-        for (Message message : encryptedMessages) {
-            // TODO: Attempt to decrypt message...
+        for (Message encMsg : encryptedMessages) {
+            List<Pair<BigInteger>> cPairs = encMsg.cPairs();
+            int nPairs = cPairs.size();
+            List<BigInteger> cKeys = new ArrayList<>(nPairs);
 
-            if (!message.encrypted()) {
-                decryptedMessages.add(message);
+            for (int i = 0; i < nPairs; i++) {
+                Pair<BigInteger> cPair = cPairs.get(i);
+                BigInteger cA = cPair.first();
+                BigInteger cB = cPair.second();
+                BigInteger x = _privKeys.get(i);
+
+                BigInteger sec = cA.modPow(x, _prime);
+                BigInteger inv = sec.modInverse(_prime);
+                BigInteger key = cB.multiply(inv).mod(_prime);
+                cKeys.add(key);
             }
+
+            // Multiply keys together...
+            BigInteger prod = BigMath.product(cKeys);
+
+            // If we did this right, prod should be the symmetric key.
+            BigInteger encoded = AES.decrypt(encMsg.cSym(), prod);
+            String decoded = MyBigInt.decode(encoded);
+
+            // Add decrypted message to the list...
+            Message decMsg = new Message(encMsg.from(), decoded);
+            decryptedMessages.add(decMsg);
         }
 
         return decryptedMessages;
     }
 
-    public BigInteger decrypt(BigInteger[] c) {
-        BigInteger c1 = c[0];
-        BigInteger c2 = c[1];
-
-//        BigInteger secKey; // = c1.modPow(_kPr, _prime);
-//        if (_useSAM) {
-//            secKey = MyBigInt.squareAndMultiply(c1, _kPr, _prime);
-//        } else {
-//            secKey = c1.modPow(_kPr, _prime);
-//        }
-//
-//        BigInteger secInv = secKey.modInverse(_prime);
-        BigInteger m = BigInteger.ZERO; //c2.multiply(secInv).mod(_prime);
-
-        return m;
-    }
-
     public BigInteger receive(PeapodUser sender, BigInteger[] c) {
-        BigInteger m = decrypt(c);
-
-        // We are good up to here, but mPrime.toByteArray does not return same bytes as String.getBytes...
-        //byte[] mBytes = mPrime.toByteArray();
-        //String message = new String(mBytes);
-        //String message = DatatypeConverter.printBase64Binary(mBytes);
-
+        BigInteger m = BigInteger.ZERO; //decrypt(c);
         System.out.println(String.format("%s: Received %s from %s.", _name, m.toString(), sender.getName()));
 
         return m;
@@ -266,11 +264,13 @@ public class PeapodUser implements User, Serializable {
         return _policy;
     }
 
-    public void authenticate(KeyServer keyServer) throws ServerException {
+    public void authenticate(KeyServer keyServer) throws PeapodException {
         // Register with key server, and get private key.
-        //_kPr = keyServer.addUser(this);
         _log.info("Authenticating user '" + getName() + "' with key server '" + keyServer.getName() + "'");
         keyServer.addUser(this);
+
+        // Get private keys after authenticating...
+        _privKeys = keyServer.getPrivateKeys(this);
 
         // Also fetch the key server's generator and big prime.
         _gen = keyServer.generator();

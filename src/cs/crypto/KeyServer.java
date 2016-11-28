@@ -127,19 +127,19 @@ public class KeyServer extends ElgamalEntity implements Serializable {
         return _authorized;
     }
 
-    public BigInteger publicKey() {
-        return _kPub;
-    }
+    public List<BigInteger> getPrivateKeys(User user) throws UserException {
+        if (_regUsers.contains(user)) {
+            List<Attribute> attrList = AttributeList.get().list();
+            List<BigInteger> privKeys = new ArrayList<>(attrList.size());
 
-    private List<BigInteger> getPrivateKeys() {
-        List<Attribute> attrList = AttributeList.get().list();
-        List<BigInteger> privKeys = new ArrayList<>(attrList.size());
+            for (Attribute attribute : attrList) {
+                privKeys.add(_privKeys.get(attribute.getName()));
+            }
 
-        for (Attribute attribute : attrList) {
-            privKeys.add(_privKeys.get(attribute.getName()));
+            return privKeys;
+        } else {
+            throw new UserException("User '" + user.getName() + "' is not authenticated.");
         }
-
-        return privKeys;
     }
 
     public List<BigInteger> getPublicKeys() {
@@ -152,7 +152,6 @@ public class KeyServer extends ElgamalEntity implements Serializable {
 
         return pubKeys;
     }
-
 
     public List<BigInteger> getTransformationKeys(ListServer listServer) throws ServerException {
         if (_listServers.contains(listServer)) {
