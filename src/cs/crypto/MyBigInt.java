@@ -1,5 +1,6 @@
 package cs.crypto;
 
+import java.io.IOException;
 import java.math.BigInteger;
 
 /**
@@ -146,18 +147,44 @@ public class MyBigInt {
     }
 
     public static BigInteger encode(String message, BigInteger prime) throws MessageException {
+        return encode(message, prime, false);
+    }
+
+    public static BigInteger encode(String message, BigInteger prime, boolean compressed) throws MessageException {
         byte[] mBytes = message.getBytes();
-        //byte[] mBytes = DatatypeConverter.parseBase64Binary(message);
+        //byte[] mBytes = Bytes.toBytes(message);
 
-//        BigInteger m = (new BigInteger(1, mBytes)); //.mod(prime);
-//        if (m.compareTo(prime) > 0) {
-//            throw new MessageException("Message exceeds prime size.");
-//        }
-
-        // Override exception throwing for testing purposes...
         BigInteger m = (new BigInteger(1, mBytes)).mod(prime);
+        if (compressed) {
+            mBytes = Bytes.toBytes(m, true);
+            m = (new BigInteger(1, mBytes)).mod(prime);
+//            try {
+//                mBytes = Bytes.compress(mBytes);
+//            } catch (IOException ioe) {
+//                throw new MessageException(ioe.toString());
+//            }
+        }
+
+        if (m.compareTo(prime) > 0) {
+            throw new MessageException("Message exceeds prime size.");
+        }
 
         return m;
+    }
+
+    public static String decode(BigInteger msgBigInt) {
+        return decode(msgBigInt, false);
+    }
+
+    public static String decode(BigInteger msgBigInt, boolean compressed) {
+        //String message = Bytes.toString(msgBigInt.toByteArray());
+        byte[] bytes = msgBigInt.toByteArray();
+        if (compressed) {
+            msgBigInt = (BigInteger) Bytes.fromBytes(bytes, compressed);
+            bytes = msgBigInt.toByteArray();
+        }
+
+        return new String(bytes);
     }
 
     public static final MyBigInt ZERO = new MyBigInt(BigInteger.ZERO);

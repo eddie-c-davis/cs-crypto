@@ -7,6 +7,6 @@ import java.math.BigInteger;
  */
 public interface ElgamalCipher {
     void init();
-    BigInteger[] encrypt(BigInteger m, BigInteger p, BigInteger g, BigInteger k);
-    BigInteger decrypt(BigInteger[] c);
+    Pair<BigInteger> encrypt(BigInteger m, BigInteger p, BigInteger g, BigInteger k);
+    BigInteger decrypt(Pair<BigInteger> c);
 }

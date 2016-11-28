@@ -65,7 +65,7 @@ public class ElgamalEntity implements ElgamalCipher {
         _initialized = true;
     }
 
-    public BigInteger[] encrypt(BigInteger m, BigInteger p, BigInteger g, BigInteger k) {
+    public Pair<BigInteger> encrypt(BigInteger m, BigInteger p, BigInteger g, BigInteger k) {
         BigInteger one = BigInteger.ONE;
         BigInteger pm1 = p.subtract(one);
         BigInteger r = (new RandomBigInt(one, pm1)).get();
@@ -83,12 +83,12 @@ public class ElgamalEntity implements ElgamalCipher {
 
         BigInteger c2 = m.multiply(secKey).mod(_prime);
 
-        return new BigInteger[] {c1, c2};
+        return new Pair<>(c1, c2);
     }
 
-    public BigInteger decrypt(BigInteger[] c) {
-        BigInteger c1 = c[0];
-        BigInteger c2 = c[1];
+    public BigInteger decrypt(Pair<BigInteger> c) {
+        BigInteger c1 = c.first();
+        BigInteger c2 = c.second();
 
         BigInteger secKey; // = c1.modPow(_kPr, _prime);
         if (_useSAM) {

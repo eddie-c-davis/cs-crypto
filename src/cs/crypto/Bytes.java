@@ -25,6 +25,27 @@ public class Bytes {
         return toBytes(object, false);
     }
 
+    public static byte[] compress(byte[] inBytes) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        GZIPOutputStream gzOut = new GZIPOutputStream(bos);
+        gzOut.write(inBytes, 0, inBytes.length);
+        gzOut.finish();
+        byte[] outBytes = bos.toByteArray();
+        bos.close();
+
+        return outBytes;
+    }
+
+    public static byte[] decompress(byte[] inBytes) throws ClassNotFoundException, IOException {
+        ByteArrayInputStream bis = new ByteArrayInputStream(inBytes);
+        GZIPInputStream gzIn = new GZIPInputStream(bis);
+        ObjectInputStream in = new ObjectInputStream(gzIn);
+        byte[] outBytes = (byte[]) in.readObject();
+        in.close();
+
+        return outBytes;
+    }
+
     public static byte[] toBytes(Serializable object, boolean compressed) {
         byte[] bytes = new byte[0];
         ByteArrayOutputStream bos = new ByteArrayOutputStream();

@@ -69,10 +69,8 @@ public class PeapodUser implements User, Serializable {
         BigInteger g = _gen;    // g is the global generator (originating from the key server).
         BigInteger p = _prime;  // p is our big prime.
 
-        // Convert message to
-        //byte[] mBytes = DatatypeConverter.parseBase64Binary(message);
-        //BigInteger m = (new BigInteger(1, message.getBytes())).mod(_prime);
         BigInteger m = MyBigInt.encode(message, p);
+        assert(message.equals(MyBigInt.decode(m)));
 
         String logMsg = getName() + ": Encrypting message '" + message + "' (" + m + ").";
         _log.info(logMsg);
@@ -91,7 +89,7 @@ public class PeapodUser implements User, Serializable {
         assert(m == AES.decrypt(cSym, key));
 
         // Now we ElGamal encrypt the the subkeys before depositing on the list server...
-        List<BigInteger> pubKeys = getPubKeys();
+        List<BigInteger> pubKeys = _policy.getPublicKeys();
         List<Pair<BigInteger>> cList = new ArrayList<>(pubKeys.size());
         for (BigInteger y : pubKeys) {
             BigInteger r = _rand.get();     // Randomness...
@@ -110,15 +108,6 @@ public class PeapodUser implements User, Serializable {
         _log.info(logMsg);
 
         return server.deposit(this, cSym, cList);
-    }
-
-    private List<BigInteger> getPubKeys() {
-        List<BigInteger> pubKeys = new ArrayList<>(_policy.size());
-        for (Attribute attribute : _policy.attributes()) {
-            pubKeys.add(attribute.publicKey());
-        }
-
-        return pubKeys;
     }
 
     private List<BigInteger> getSubKeys() {

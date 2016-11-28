@@ -134,21 +134,7 @@ public class ListServer extends ElgamalEntity implements Serializable {
             logMsg += "] from user '" + senderName + "'.";
             _log.info(logMsg);
 
-            int nKeys = cList.size();
-            List<Pair<BigInteger>> cPrime = new ArrayList<>(nKeys);
-
-            BigInteger p = this.prime();
-
-            for (int i = 0; i < nKeys; i++) {
-                BigInteger s = _transKeys.get(i);
-                Pair<BigInteger> c = cList.get(i);
-                BigInteger cA = c.first();
-                BigInteger cB = c.second();
-
-                BigInteger cPrA = cA;
-                BigInteger cPrB = cB.multiply((cA.modPow(s, p)));
-                cPrime.add(new Pair<>(cPrA, cPrB));
-            }
+            List<Pair<BigInteger>> cPrime = transform(cList);
 
             logMsg = getName() + ": Saving cSym " + cSym + ", cPrime = [";
             for (Pair<BigInteger> pair : cPrime) {
@@ -162,6 +148,36 @@ public class ListServer extends ElgamalEntity implements Serializable {
         } else {
             throw new UserException("ListServer cannot receive from unsubscribed user '" + senderName + "'.");
         }
+    }
+
+    private List<Pair<BigInteger>> transform(List<Pair<BigInteger>> cPairs) {
+        int nPairs = cPairs.size();
+        List<Integer> indices = new ArrayList<>(nPairs);
+        for (int i = 0; i < cPairs.size(); i++) {
+            indices.add(i);
+        }
+
+        return transform(cPairs, indices);
+    }
+
+    private List<Pair<BigInteger>> transform(List<Pair<BigInteger>> cPairs, List<Integer> indices) {
+        int nKeys = cPairs.size();
+        List<Pair<BigInteger>> cPrime = new ArrayList<>(nKeys);
+
+        BigInteger p = this.prime();
+        for (int i = 0; i < nKeys; i++) {
+            int j = indices.get(i);
+            BigInteger s = _transKeys.get(j);
+            Pair<BigInteger> c = cPairs.get(i);
+            BigInteger cA = c.first();
+            BigInteger cB = c.second();
+
+            BigInteger cPrA = cA;
+            BigInteger cPrB = cB.multiply((cA.modPow(s, p)));
+            cPrime.add(new Pair<>(cPrA, cPrB));
+        }
+
+        return cPrime;
     }
 
     private Message addMessage(Message message) {
@@ -192,24 +208,46 @@ public class ListServer extends ElgamalEntity implements Serializable {
             int nPairs = cPairs.size();
 
             List<Pair<BigInteger>> cSubset = new ArrayList<>(nPairs);
+            List<Integer> indices = new ArrayList<>(nPairs);
+
             for (int i = 0; i < nPairs; i++) {
                 if (!attributes.get(i).missing()) {
                     cSubset.add(cPairs.get(i));
+                    indices.add(i);
                 }
             }
 
             nPairs = cSubset.size();
             List<BigInteger> bFactors = getBlindingFactors(nPairs);
 
-            // OKay, blinding factors still have issues.
-            // TODO: Re-encrypt subset with blinding factors...
+            // TODO: Encrypt blinding factors...
+            // Okay, blinding factors still have issues.
+
+            Policy msgPolicy = PolicyList.get().map().get(message.from());
+            List<BigInteger> pubKeys = msgPolicy.getPublicKeys();
+
+            List<Pair<BigInteger>> bfPairs = new ArrayList<>(nPairs);
+            for (int i = 0; i < nPairs; i++) {
+                int j = indices.get(i);
+                BigInteger y = pubKeys.get(j);
+                Pair<BigInteger> bfC = encrypt(bFactors.get(i), _prime, _gen, y);
+                bfPairs.add(bfC);
+            }
 
             // TODO: Encrypt with transformation keys.
-            // BigInteger s_i = BigInteger.ZERO; //_transKeys.get(subName);
-//
-//          // Calculate cA'' and cB'''
-//          BigInteger cDblPrA = cPrimeA;
-//          BigInteger cDblPrB = cPrimeB.divide(cPrimeA.modPow(s_i, _prime));
+            bfPairs = transform(bfPairs, indices);
+
+            // TODO: "Homomorphically" multiply binding factors...
+            for (int i = 0; i < nPairs; i++) {
+                Pair<BigInteger> bfPair = bfPairs.get(i);
+                Pair<BigInteger> cPair = cSubset.get(i);
+
+                BigInteger cAProd = bfPair.first().multiply(cPair.first()).mod(_prime);
+                BigInteger cBProd = bfPair.second().multiply(cPair.second()).mod(_prime);
+
+                Pair<BigInteger> cNew = new Pair(cAProd, cBProd);
+                cSubset.set(i, cNew);
+            }
 
             // TODO: Generate a new message with cSubset, and add to return list.
             Message newMsg = new Message(message.cSym(), cSubset);

@@ -94,7 +94,7 @@ public class ElgamalUser extends ElgamalEntity implements User {
         _gen = receiver.generator();
         BigInteger kPub = receiver.publicKey();
 
-        BigInteger[] c = encrypt(m, _prime, _gen, kPub);
+        Pair<BigInteger> c = encrypt(m, _prime, _gen, kPub);
 
         receiver.receive(this, c);
     }
@@ -124,7 +124,7 @@ public class ElgamalUser extends ElgamalEntity implements User {
         return m;
     }
 
-    public BigInteger receive(ElgamalUser sender, BigInteger[] c) {
+    public BigInteger receive(ElgamalUser sender, Pair<BigInteger> c) {
         BigInteger m = decrypt(c);
 
         // We are good up to here, but mPrime.toByteArray does not return same bytes as String.getBytes...

@@ -82,6 +82,15 @@ public class Policy implements Serializable {
         return _attributes.size();
     }
 
+    public List<BigInteger> getPublicKeys() {
+        List<BigInteger> pubKeys = new ArrayList<>(this.size());
+        for (Attribute attribute : this.attributes()) {
+            pubKeys.add(attribute.publicKey());
+        }
+
+        return pubKeys;
+    }
+
     public void setPublicKeys(List<BigInteger> pubKeys) {
         for (int i = 0; i < pubKeys.size(); i++) {
             _attributes.get(i).publicKey(pubKeys.get(i));
