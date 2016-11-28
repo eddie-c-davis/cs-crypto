@@ -19,6 +19,8 @@ public class ListServer extends ElgamalEntity implements Serializable {
     private static Map<String, ListServer> _serverMap = new HashMap<>();
 
     private boolean _registered = false;
+    private boolean _blindingOn = true;
+
     private KeyServer _keyServer;
     private RandomBigInt _rand;
 
@@ -188,6 +190,7 @@ public class ListServer extends ElgamalEntity implements Serializable {
         String prefix = String.format("listserv-%s-message-", _name.toLowerCase());
 
         int count = _messages.size();
+        message.setCount(count);
         String key = String.format("%scount", prefix);
         cache.put(key, count);
 
@@ -237,35 +240,38 @@ public class ListServer extends ElgamalEntity implements Serializable {
             }
 
             nPairs = cSubset.size();
-            List<BigInteger> bFactors = getBlindingFactors(nPairs);
 
-            // TODO: Encrypt blinding factors...
-            // Okay, blinding factors still have issues.
+            if (_blindingOn) {
+                List<BigInteger> bFactors = getBlindingFactors(nPairs);
 
-            PeapodUser sender = PeapodUser.get(message.from());
-            List<BigInteger> pubKeys = sender.getPolicy().getPublicKeys();
+                // TODO: Encrypt blinding factors...
+                // Okay, blinding factors still have issues.
 
-            List<Pair<BigInteger>> bfPairs = new ArrayList<>(nPairs);
-            for (int i = 0; i < nPairs; i++) {
-                int j = indices.get(i);
-                BigInteger y = pubKeys.get(j);
-                Pair<BigInteger> bfC = encrypt(bFactors.get(i), _prime, _gen, y);
-                bfPairs.add(bfC);
-            }
+                PeapodUser sender = PeapodUser.get(message.from());
+                List<BigInteger> pubKeys = sender.getPolicy().getPublicKeys();
 
-            // TODO: Encrypt with transformation keys.
-            bfPairs = transform(bfPairs, indices);
+                List<Pair<BigInteger>> bfPairs = new ArrayList<>(nPairs);
+                for (int i = 0; i < nPairs; i++) {
+                    int j = indices.get(i);
+                    BigInteger y = pubKeys.get(j);
+                    Pair<BigInteger> bfC = encrypt(bFactors.get(i), _prime, _gen, y);
+                    bfPairs.add(bfC);
+                }
 
-            // TODO: "Homomorphically" multiply binding factors...
-            for (int i = 0; i < nPairs; i++) {
-                Pair<BigInteger> bfPair = bfPairs.get(i);
-                Pair<BigInteger> cPair = cSubset.get(i);
+                // TODO: Encrypt with transformation keys.
+                bfPairs = transform(bfPairs, indices);
 
-                BigInteger cAProd = bfPair.first().multiply(cPair.first()).mod(_prime);
-                BigInteger cBProd = bfPair.second().multiply(cPair.second()).mod(_prime);
+                // TODO: "Homomorphically" multiply binding factors...
+                for (int i = 0; i < nPairs; i++) {
+                    Pair<BigInteger> bfPair = bfPairs.get(i);
+                    Pair<BigInteger> cPair = cSubset.get(i);
 
-                Pair<BigInteger> cNew = new Pair(cAProd, cBProd);
-                cSubset.set(i, cNew);
+                    BigInteger cAProd = bfPair.first().multiply(cPair.first()).mod(_prime);
+                    BigInteger cBProd = bfPair.second().multiply(cPair.second()).mod(_prime);
+
+                    Pair<BigInteger> cNew = new Pair(cAProd, cBProd);
+                    cSubset.set(i, cNew);
+                }
             }
 
             // TODO: Generate a new message with cSubset, and add to return list.
@@ -345,6 +351,14 @@ public class ListServer extends ElgamalEntity implements Serializable {
 
     public boolean registered() {
         return _registered;
+    }
+
+    public boolean getBlinding() {
+        return _blindingOn;
+    }
+
+    public void setBlinding(boolean blindingOn) {
+        _blindingOn = blindingOn;
     }
 
     @Override

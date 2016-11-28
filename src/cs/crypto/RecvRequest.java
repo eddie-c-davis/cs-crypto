@@ -25,6 +25,7 @@ public class RecvRequest implements Request {
             _user.authenticate(keyServer);
 
             ListServer listServer = ListServer.get();
+            //listServer.setBlinding(false);
             listServer.subscribe(_user);
 
             List<Message> messages = _user.receive(listServer);

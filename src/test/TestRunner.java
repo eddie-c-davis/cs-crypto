@@ -1,7 +1,5 @@
 package test;
 
-import cs.crypto.KeyServer;
-import cs.crypto.RedisCache;
 import cs.crypto.Request;
 
 /**
@@ -16,9 +14,6 @@ public class TestRunner {
 
     public String run() {
         String output = "";
-
-        // Remove key server instance from RedisCache.
-        //RedisCache.instance().remove(KeyServer.cacheKey());
 
         try {
             output = _req.run();

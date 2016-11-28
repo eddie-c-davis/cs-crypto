@@ -10,6 +10,8 @@ import java.util.List;
  * Created by edavis on 11/24/16.
  */
 public class Message implements Serializable, Jsonizable {
+    private int _count;
+
     private String _from;
     private String _body;
 
@@ -59,8 +61,18 @@ public class Message implements Serializable, Jsonizable {
         return _cPairs;
     }
 
+    public int getCount() {
+        return _count;
+    }
+
+    public void setCount(int count) {
+        _count = count;
+    }
+
     public String toJSON() {
         JSONObject obj = new JSONObject();
+        obj.put("count", _count);
+
         if (encrypted()) {
             obj.put("cSym", _cSym.toString());
 

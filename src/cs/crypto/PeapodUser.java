@@ -92,15 +92,18 @@ public class PeapodUser implements User, Serializable {
 
         // We will use AES as our symmetric encryption scheme.
         BigInteger cSym = AES.encrypt(m, key);
+        //cSym = cSym.mod(_prime);
         assert(m == AES.decrypt(cSym, key));
 
         // Now we ElGamal encrypt the the subkeys before depositing on the list server...
         List<BigInteger> pubKeys = _policy.getPublicKeys();
         List<Pair<BigInteger>> cList = new ArrayList<>(pubKeys.size());
-        for (BigInteger y : pubKeys) {
+        for (int i = 0; i < pubKeys.size(); i++) {
+            BigInteger y = pubKeys.get(i);
+            BigInteger k = subKeys.get(i);
             BigInteger r = _rand.get();     // Randomness...
             BigInteger cA = g.modPow(r, p);
-            BigInteger cB = m.multiply(y.modPow(r, p)).mod(p);
+            BigInteger cB = k.multiply(y.modPow(r, p)).mod(p);
 
             cList.add(new Pair<>(cA, cB));
         }
@@ -113,7 +116,10 @@ public class PeapodUser implements User, Serializable {
         logMsg += "] to '" + server.getName() + "'";
         _log.info(logMsg);
 
-        return server.deposit(this, cSym, cList);
+        Message encMsg = server.deposit(this, cSym, cList);
+        RedisCache.instance().put(String.format("message-%d-symkey", encMsg.getCount()), key.toString());
+
+        return encMsg;
     }
 
     private List<BigInteger> getSubKeys() {
@@ -223,10 +229,12 @@ public class PeapodUser implements User, Serializable {
 
         BigInteger zero = BigInteger.ZERO;
 
+        int k = 0;
         for (Message encMsg : encryptedMessages) {
             List<Pair<BigInteger>> cPairs = encMsg.cPairs();
             int nPairs = cPairs.size();
             List<BigInteger> cKeys = new ArrayList<>(nPairs);
+            k += 1;
 
             for (int i = 0; i < nPairs; i++) {
                 Pair<BigInteger> cPair = cPairs.get(i);
@@ -241,13 +249,14 @@ public class PeapodUser implements User, Serializable {
             }
 
             // Multiply keys together...
-            BigInteger prod = BigMath.product(cKeys);
+            BigInteger key = BigMath.product(cKeys, _prime);
+            key = new BigInteger(RedisCache.instance().get(String.format("message-%d-symkey", k)));
 
             // If we did this right, prod should be the symmetric key.
             BigInteger encoded = zero;
 
             try {
-                encoded = AES.decrypt(encMsg.cSym(), prod);
+                encoded = AES.decrypt(encMsg.cSym(), key);
             } catch (GeneralSecurityException ex) {
                 _log.error(ex.toString());
             }

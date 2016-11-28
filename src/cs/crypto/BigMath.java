@@ -55,6 +55,15 @@ public class BigMath {
         return sum;
     }
 
+    public static BigInteger product(List<BigInteger> numbers, BigInteger modulus) {
+        BigInteger prod = BigInteger.ONE;
+        for (BigInteger bigI : numbers) {
+            prod = prod.multiply(bigI).mod(modulus);
+        }
+
+        return prod;
+    }
+
     public static BigInteger product(List<BigInteger> numbers) {
         BigInteger prod = BigInteger.ONE;
         for (BigInteger bigI : numbers) {
