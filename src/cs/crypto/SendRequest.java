@@ -9,7 +9,7 @@ import org.json.JSONObject;
 public class SendRequest implements Request {
     private static Logger _log = Logger.getLogger(SendRequest.class.getName());
 
-    private User _user;
+    private PeapodUser _user;
     private Message _message;
 
     public SendRequest(String userName, String msgBody) {
@@ -28,6 +28,9 @@ public class SendRequest implements Request {
             listServer.subscribe(_user);
 
             Message encrypted = _user.send(listServer, _message.body());
+
+            // Ensure latest version of user is encached...
+            _user.encache();
 
             JSONObject obj = new JSONObject();
             obj.put("sender", _user.getName());

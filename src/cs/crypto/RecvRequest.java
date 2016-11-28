@@ -11,7 +11,7 @@ import java.util.List;
 public class RecvRequest implements Request {
     private static Logger _log = Logger.getLogger(SendRequest.class.getName());
 
-    private User _user;
+    private PeapodUser _user;
 
     public RecvRequest(String userName) {
         _user = PeapodUser.get(userName);
@@ -28,6 +28,9 @@ public class RecvRequest implements Request {
             listServer.subscribe(_user);
 
             List<Message> messages = _user.receive(listServer);
+
+            // Ensure latest version of user is encached...
+            _user.encache();
 
             JSONObject obj = new JSONObject();
             obj.put("receiver", _user.getName());

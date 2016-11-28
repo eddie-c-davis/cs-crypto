@@ -1,5 +1,6 @@
 package cs.crypto;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.Random;
@@ -10,7 +11,7 @@ import org.bouncycastle.crypto.params.DHParameters;
 /**
  * Created by edavis on 10/3/16.
  */
-public class PrimeGenerator {
+public class PrimeGenerator implements Serializable {
     private static final int DEFAULT_SIZE = 32;
     private static final int DEFAULT_CERTAINTY = 90;
 
@@ -21,7 +22,7 @@ public class PrimeGenerator {
     private BigInteger p;
     private BigInteger q;
 
-    private DHParameters dhParams;
+    private transient DHParameters dhParams;
     private SecureRandom rand;
 
     public PrimeGenerator() {

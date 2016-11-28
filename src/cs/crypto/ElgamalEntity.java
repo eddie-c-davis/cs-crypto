@@ -1,5 +1,6 @@
 package cs.crypto;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.List;
 import javax.xml.bind.DatatypeConverter;
@@ -7,7 +8,7 @@ import javax.xml.bind.DatatypeConverter;
 /**
  * Created by edavis on 10/4/16.
  */
-public class ElgamalEntity implements ElgamalCipher {
+public class ElgamalEntity implements ElgamalCipher, Serializable {
     protected static final int DEFAULT_BITLEN = 128;
     protected static final int DEFAULT_CERTAINTY = 90;
 
@@ -120,10 +121,18 @@ public class ElgamalEntity implements ElgamalCipher {
     }
 
     public BigInteger generator() {
+        if (_gen == null) {
+            _gen = _pGen.getG();
+        }
+
         return _gen;
     }
 
     public BigInteger prime() {
+        if (_prime == null) {
+            _prime = _pGen.getP();
+        }
+
         return _prime;
     }
 

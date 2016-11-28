@@ -151,17 +151,17 @@ public class ListServer extends ElgamalEntity implements Serializable {
         }
     }
 
-//    private List<Pair<BigInteger>> transform(List<Pair<BigInteger>> cPairs) {
-//        int nPairs = cPairs.size();
-//        List<Integer> indices = new ArrayList<>(nPairs);
-//        for (int i = 0; i < cPairs.size(); i++) {
-//            indices.add(i);
-//        }
-//
-//        return transform(cPairs, indices);
-//    }
+    private List<Pair<BigInteger>> transform(List<Pair<BigInteger>> cPairs) {
+        int nPairs = cPairs.size();
+        List<Integer> indices = new ArrayList<>(nPairs);
+        for (int i = 0; i < cPairs.size(); i++) {
+            indices.add(i);
+        }
 
-    private List<Pair<BigInteger>> transform(List<Pair<BigInteger>> cPairs) { //}, List<Integer> indices) {
+        return transform(cPairs, indices);
+    }
+
+    private List<Pair<BigInteger>> transform(List<Pair<BigInteger>> cPairs, List<Integer> indices) {
         int nKeys = cPairs.size();
         List<Pair<BigInteger>> cPrime = new ArrayList<>(nKeys);
 
@@ -224,37 +224,37 @@ public class ListServer extends ElgamalEntity implements Serializable {
             int nPairs = cPairs.size();
 
             List<Pair<BigInteger>> cSubset = new ArrayList<>(nPairs);
-            //List<Integer> indices = new ArrayList<>(nPairs);
+            List<Integer> indices = new ArrayList<>(nPairs);
 
             for (int i = 0; i < nPairs; i++) {
                 if (!attributes.get(i).missing()) {
                     cSubset.add(cPairs.get(i));
-                    //indices.add(i);
-                } else {
-                    cSubset.add(new Pair<>(BigInteger.ONE, BigInteger.ONE));
+                    indices.add(i);
                 }
+//                } else {
+//                    cSubset.add(new Pair<>(BigInteger.ONE, BigInteger.ONE));
+//                }
             }
 
-            //nPairs = cSubset.size();
+            nPairs = cSubset.size();
             List<BigInteger> bFactors = getBlindingFactors(nPairs);
 
             // TODO: Encrypt blinding factors...
             // Okay, blinding factors still have issues.
 
-            Policy msgPolicy = PolicyList.get().map().get(message.from());
-            // TODO: pubKeys are coming back null, need to fix.
-            List<BigInteger> pubKeys = msgPolicy.getPublicKeys();
+            PeapodUser sender = PeapodUser.get(message.from());
+            List<BigInteger> pubKeys = sender.getPolicy().getPublicKeys();
 
             List<Pair<BigInteger>> bfPairs = new ArrayList<>(nPairs);
             for (int i = 0; i < nPairs; i++) {
-                //int j = indices.get(i);
-                BigInteger y = pubKeys.get(i);
+                int j = indices.get(i);
+                BigInteger y = pubKeys.get(j);
                 Pair<BigInteger> bfC = encrypt(bFactors.get(i), _prime, _gen, y);
                 bfPairs.add(bfC);
             }
 
             // TODO: Encrypt with transformation keys.
-            bfPairs = transform(bfPairs); //, indices);
+            bfPairs = transform(bfPairs, indices);
 
             // TODO: "Homomorphically" multiply binding factors...
             for (int i = 0; i < nPairs; i++) {
@@ -281,6 +281,7 @@ public class ListServer extends ElgamalEntity implements Serializable {
 
         // Get blinding factors, the product should be 1 mod p [i.e., (p + 1) mod p].
         BigInteger one = BigInteger.ONE;
+        BigInteger zero = BigInteger.ZERO;
         BigInteger primeP1 = _prime.add(one);
 
         BigDecimal root = BigMath.root(nFactors, new BigDecimal(primeP1));
@@ -289,22 +290,28 @@ public class ListServer extends ElgamalEntity implements Serializable {
 
         List<BigInteger> bFactors = new ArrayList<>(nFactors);
 
+        BigInteger rem = one;
         BigInteger prod = one;
-        BigInteger bf = prod;
 
-        for (int i = 0; i < endIndex; i++) {
-        //for (int i = 0; i < nFactors; i++) {
-            //bf = (new RandomBigInt(one, max)).get();
-            //max = max.divide(bf);
-            bf = rand.get();
-            prod = prod.multiply(bf);
+        //while (!rem.equals(zero)) {
+            bFactors.clear();
+            prod = one;
+            BigInteger bf = prod;
+
+            for (int i = 0; i < endIndex; i++) {
+                //for (int i = 0; i < nFactors; i++) {
+                //bf = (new RandomBigInt(one, max)).get();
+                //max = max.divide(bf);
+                bf = rand.get();
+                prod = prod.multiply(bf);
+                bFactors.add(bf);
+            }
+
+            bf = primeP1.divide(prod);
+            rem = primeP1.mod(prod);
             bFactors.add(bf);
-        }
-
-        bf = primeP1.divide(prod);
-        BigInteger rem = primeP1.mod(prod);
-        bFactors.add(bf);
-        prod = prod.multiply(bf);
+            prod = prod.multiply(bf);
+        //}
 
         // TODO: What to do with remainder?
 

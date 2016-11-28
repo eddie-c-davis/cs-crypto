@@ -42,11 +42,7 @@ public class PeapodUser implements User, Serializable {
 
             if (user == null) {
                 user = new PeapodUser(userName);
-                byte[] bytes = Bytes.toBytes(user);
-                cacheData = Bytes.toString(bytes);
-                cache.put(key, cacheData);
-
-                assert(Bytes.equals(bytes, Bytes.toBytes(cacheData)));
+                user.encache();
             }
 
             _userMap.put(userName, user);
@@ -65,6 +61,14 @@ public class PeapodUser implements User, Serializable {
 
         // Fetch this user's policy
         _policy = PolicyList.get().map().get(getName());
+    }
+
+    public void encache() {
+        byte[] bytes = Bytes.toBytes(this);
+        String cacheData = Bytes.toString(bytes);
+        String key = String.format("user-%s", _name.toLowerCase());
+        RedisCache cache = RedisCache.instance();
+        cache.put(key, cacheData);
     }
 
     public Message send(ListServer server, String message) throws GeneralSecurityException, MessageException, UserException {
@@ -217,6 +221,8 @@ public class PeapodUser implements User, Serializable {
         List<Message> encryptedMessages = server.receive(this);
         List<Message> decryptedMessages = new ArrayList<>(encryptedMessages.size());
 
+        BigInteger zero = BigInteger.ZERO;
+
         for (Message encMsg : encryptedMessages) {
             List<Pair<BigInteger>> cPairs = encMsg.cPairs();
             int nPairs = cPairs.size();
@@ -238,12 +244,21 @@ public class PeapodUser implements User, Serializable {
             BigInteger prod = BigMath.product(cKeys);
 
             // If we did this right, prod should be the symmetric key.
-            BigInteger encoded = AES.decrypt(encMsg.cSym(), prod);
-            String decoded = MyBigInt.decode(encoded);
+            BigInteger encoded = zero;
 
-            // Add decrypted message to the list...
-            Message decMsg = new Message(encMsg.from(), decoded);
-            decryptedMessages.add(decMsg);
+            try {
+                encoded = AES.decrypt(encMsg.cSym(), prod);
+            } catch (GeneralSecurityException ex) {
+                _log.error(ex.toString());
+            }
+
+            if (!encoded.equals(zero)) {
+                String decoded = MyBigInt.decode(encoded);
+
+                // Add decrypted message to the list...
+                Message decMsg = new Message(encMsg.from(), decoded);
+                decryptedMessages.add(decMsg);
+            }
         }
 
         return decryptedMessages;

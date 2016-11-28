@@ -18,7 +18,7 @@ public class TestRunner {
         String output = "";
 
         // Remove key server instance from RedisCache.
-        RedisCache.instance().remove(KeyServer.cacheKey());
+        //RedisCache.instance().remove(KeyServer.cacheKey());
 
         try {
             output = _req.run();

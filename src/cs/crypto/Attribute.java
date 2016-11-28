@@ -12,7 +12,8 @@ public class Attribute extends ElgamalEntity implements Serializable {
     public static final char IRRELEVANT = '*';
     public static final char MISSING = '-';
 
-    private String _name;
+    private String _name = "";
+
     private char _value;
 
     public Attribute(String name, boolean val) {
