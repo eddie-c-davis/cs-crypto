@@ -2,6 +2,8 @@ package cs.crypto;
 
 import org.apache.log4j.Logger;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.*;
 import org.apache.log4j.Logger;
 import redis.clients.jedis.Jedis;
@@ -14,7 +16,7 @@ public class RedisCache  implements Map<String, String> {
     public static final int DEFAULT_PORT = 6379;
 
     private static Logger _log = Logger.getLogger(RedisCache.class.getName());
-
+    private static boolean _redisRunning = false;
     private static RedisCache _cache = null;
 
     private Jedis _jedis;
@@ -25,6 +27,26 @@ public class RedisCache  implements Map<String, String> {
         }
 
         return _cache;
+    }
+
+    public static boolean isRunning() {
+        boolean running = _redisRunning;
+        try {
+            if (!running) {
+                String line;
+                Process p = Runtime.getRuntime().exec("/bin/ps -ef");
+                BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                while (!running && (line = input.readLine()) != null) {
+                    running = (line.indexOf("redis-server") >= 0);
+                }
+                input.close();
+                _redisRunning = running;
+            }
+        } catch (Exception err) {
+            _log.error(err.toString());
+        } finally {
+            return running;
+        }
     }
 
     private RedisCache() {
@@ -44,8 +66,8 @@ public class RedisCache  implements Map<String, String> {
         }
     }
 
-    public void clear() throws UnsupportedOperationException {
-        throw new UnsupportedOperationException("Clearing RedisCache is not allowed.");
+    public void clear() {
+        _jedis.flushDB();
     }
 
     public boolean containsKey(Object key)

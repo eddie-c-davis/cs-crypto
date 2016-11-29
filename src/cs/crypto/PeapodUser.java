@@ -31,7 +31,7 @@ public class PeapodUser implements User, Serializable {
 
     public static PeapodUser get(String userName) {
         if (!_userMap.containsKey(userName)) {
-            RedisCache cache = RedisCache.instance();
+            Map<String, String> cache = Cache.instance();
             String key = String.format("user-%s", userName.toLowerCase());
             String cacheData = cache.get(key);
 
@@ -67,7 +67,7 @@ public class PeapodUser implements User, Serializable {
         byte[] bytes = Bytes.toBytes(this);
         String cacheData = Bytes.toString(bytes);
         String key = String.format("user-%s", _name.toLowerCase());
-        RedisCache cache = RedisCache.instance();
+        Map<String, String> cache = Cache.instance();
         cache.put(key, cacheData);
     }
 
@@ -117,7 +117,8 @@ public class PeapodUser implements User, Serializable {
         _log.info(logMsg);
 
         Message encMsg = server.deposit(this, cSym, cList);
-        RedisCache.instance().put(String.format("message-%d-symkey", encMsg.getCount()), key.toString());
+        // TODO: Come back and fix this...
+        Cache.instance().put(String.format("message-%d-symkey", 1), key.toString());
 
         return encMsg;
     }
@@ -250,7 +251,7 @@ public class PeapodUser implements User, Serializable {
 
             // Multiply keys together...
             BigInteger key = BigMath.product(cKeys, _prime);
-            key = new BigInteger(RedisCache.instance().get(String.format("message-%d-symkey", k)));
+            key = new BigInteger(Cache.instance().get(String.format("message-%d-symkey", k)));
 
             // If we did this right, prod should be the symmetric key.
             BigInteger encoded = zero;

@@ -33,7 +33,7 @@ public class KeyServer extends ElgamalEntity implements Serializable {
 
     public static KeyServer instance() {
         if (_keyServer == null) {
-            RedisCache cache = RedisCache.instance();
+            Map<String, String> cache = Cache.instance();
             String key = cacheKey();
             String cacheData = cache.get(key);
 

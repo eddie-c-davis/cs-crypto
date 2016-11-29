@@ -34,7 +34,7 @@ public class ListServer extends ElgamalEntity implements Serializable {
 
     public static ListServer get(String serverName) throws ServerException {
         if (!_serverMap.containsKey(serverName)) {
-            RedisCache cache = RedisCache.instance();
+            Map<String, String> cache = Cache.instance();
             String key = String.format("listserv-%s", serverName.toLowerCase());
             String cacheData = cache.get(key);
 
@@ -186,22 +186,21 @@ public class ListServer extends ElgamalEntity implements Serializable {
     private Message addMessage(Message message) {
         _messages.add(message);
 
-        RedisCache cache = RedisCache.instance();
+        Map<String, String> cache = Cache.instance();
         String prefix = String.format("listserv-%s-message-", _name.toLowerCase());
 
         int count = _messages.size();
-        message.setCount(count);
         String key = String.format("%scount", prefix);
-        cache.put(key, count);
+        cache.put(key, String.format("%d", count));
 
         key = String.format("%s%d", prefix, count);
         byte[] bytes = Bytes.toBytes(message);
-        cache.put(key, bytes);
+        cache.put(key, Bytes.toString(bytes));
 
         return message;
     }
 
-    public void readMessages(RedisCache cache) {
+    public void readMessages(Map<String, String> cache) {
         String prefix = String.format("listserv-%s-message-", _name.toLowerCase());
         String key = String.format("%scount", prefix);
         int count = Integer.parseInt(cache.get(key));
