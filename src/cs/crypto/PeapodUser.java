@@ -257,7 +257,10 @@ public class PeapodUser implements User, Serializable {
         BigInteger zero = BigInteger.ZERO;
         BigInteger one = BigInteger.ONE;
 
+        int k = 0;
         for (Message encMsg : encryptedMessages) {
+            k += 1;
+
             List<Pair<BigInteger>> cPairs = encMsg.cPairs();
             int nPairs = cPairs.size();
             List<BigInteger> cKeys = new ArrayList<>(nPairs);
@@ -272,7 +275,7 @@ public class PeapodUser implements User, Serializable {
                 BigInteger inv = sec.modInverse(_prime);
                 BigInteger key = cB.multiply(inv).mod(_prime);
 
-                String cacheKey = String.format("user-%s-message-%d-attr-%d", _name, encMsg.count(), i + 1);
+                String cacheKey = String.format("user-%s-message-%d-attr-%d", _name, k, i + 1);
                 if (cache.containsKey(cacheKey)) {
                     key = new BigInteger(cache.get(cacheKey));
                 } else {
