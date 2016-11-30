@@ -51,7 +51,7 @@ public class FileCache implements Map<String, String> {
 
     public boolean containsKey(Object key)
     {
-        return (_cache.get(key) != null);
+        return (this.get(key) != null);
     }
 
     public boolean containsValue(Object value)
@@ -111,6 +111,10 @@ public class FileCache implements Map<String, String> {
                 {
                     data = String.join("\n", lines);
                     _cache.put(key, data);
+                }
+
+                if (data != null && data.length() < 1) {
+                    data = null;
                 }
 
                 _log.info(String.format("Cache file '%s' read.", keyFile));

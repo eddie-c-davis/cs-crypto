@@ -229,10 +229,10 @@ public class ListServer extends ElgamalEntity implements Serializable {
             List<Integer> indices = new ArrayList<>(nPairs);
 
             for (int i = 0; i < nPairs; i++) {
-                if (!attributes.get(i).missing()) {
+                //if (!attributes.get(i).missing()) {
                     cSubset.add(cPairs.get(i));
                     indices.add(i);
-                }
+                //}
 //                } else {
 //                    cSubset.add(new Pair<>(BigInteger.ONE, BigInteger.ONE));
 //                }
@@ -244,8 +244,6 @@ public class ListServer extends ElgamalEntity implements Serializable {
                 List<BigInteger> bFactors = getBlindingFactors(nPairs);
 
                 // TODO: Encrypt blinding factors...
-                // Okay, blinding factors still have issues.
-
                 PeapodUser sender = PeapodUser.get(message.from());
                 List<BigInteger> pubKeys = sender.getPolicy().getPublicKeys();
 
@@ -298,48 +296,23 @@ public class ListServer extends ElgamalEntity implements Serializable {
         BigInteger rem = one;
         BigInteger prod = one;
 
-        //while (!rem.equals(zero)) {
-            bFactors.clear();
-            prod = one;
-            BigInteger bf = prod;
+        bFactors.clear();
+        prod = one;
+        BigInteger bf = prod;
 
-            for (int i = 0; i < endIndex; i++) {
-                //for (int i = 0; i < nFactors; i++) {
-                //bf = (new RandomBigInt(one, max)).get();
-                //max = max.divide(bf);
+        for (int i = 0; i < endIndex; i++) {;
+            do {
                 bf = rand.get();
-                prod = prod.multiply(bf);
-                bFactors.add(bf);
-            }
+            } while (!primeP1.gcd(bf).equals(one));
 
-            bf = primeP1.divide(prod);
-            rem = primeP1.mod(prod);
-            bFactors.add(bf);
             prod = prod.multiply(bf);
-        //}
+            bFactors.add(bf);
+        }
 
-        // TODO: What to do with remainder?
-
-        // Distribute the error difference among the blinding factors.
-        BigInteger diff = primeP1.subtract(prod);
-//        BigInteger nF = BigInteger.valueOf(nFactors);
-//        BigInteger quot = diff.divide(nF);
-//        BigInteger rem = diff.mod(nF);
-//
-//        for (int i = 0; i < nFactors; i++) {
-//            bf = bFactors.get(i).add(quot);
-//            bFactors.set(i, bf);
-//        }
-//
-//        if (!rem.equals(BigInteger.ZERO)) {
-//            int index = ThreadLocalRandom.current().nextInt(0, endIndex);
-//            bf = bFactors.get(index).add(rem);
-//            bFactors.set(index, bf);
-//        }
-
-        prod = BigMath.product(bFactors);
-        BigInteger test = primeP1.mod(_prime);
-        assert(prod.equals(primeP1));
+        bf = primeP1.divide(prod);
+        bFactors.add(bf);
+        prod = prod.multiply(bf);
+        //assert(prod.equals(primeP1));
 
         return bFactors;
     }

@@ -19,10 +19,8 @@ public class Application {
     public static void main(String[] args) {
         System.out.println("Running 'Peapod' web app...");
 
-        // Flush RedisCache...
-        if (RedisCache.isRunning()) {
-            RedisCache.instance().clear();
-        }
+        // Flush cache...
+        Cache.instance().clear();
 
         ApplicationContext context = SpringApplication.run(Application.class, args);
     }

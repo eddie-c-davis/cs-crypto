@@ -10,11 +10,11 @@ public class Attribute extends ElgamalEntity implements Serializable {
     public static final char REQUIRED = 'v';
     public static final char FORBIDDEN = 'x';
     public static final char IRRELEVANT = '*';
-    public static final char MISSING = '-';
+    public static final char MISSING = FORBIDDEN;       // Same as FORBIDDEN, depends whether sender or receiver...
 
-    private String _name = "";
+    protected String _name = "";
 
-    private char _value;
+    protected char _value;
 
     public Attribute(String name, boolean val) {
         set(name, val ? REQUIRED : FORBIDDEN);

@@ -10,6 +10,10 @@ import java.util.List;
  * Created by edavis on 11/24/16.
  */
 public class Message implements Serializable, Jsonizable {
+    private static int _counter = 0;
+
+    private int _count;
+
     private String _from;
     private String _body;
 
@@ -17,7 +21,8 @@ public class Message implements Serializable, Jsonizable {
     private List<Pair<BigInteger>> _cPairs;
 
     public Message(String from, String body) {
-       set(from, body);
+        increment();
+        set(from, body);
     }
 
     public Message() {
@@ -32,11 +37,29 @@ public class Message implements Serializable, Jsonizable {
         _from = from;
         _cSym = cSym;
         _cPairs = cPairs;
+        increment();
     }
 
     public void set(String from, String body) {
         _from = from;
         _body = body;
+    }
+
+    private void increment() {
+        if (_count > _counter) {
+            _counter = _count;
+        }
+
+        _counter += 1;
+        _count = _counter;
+    }
+
+    public static int counter() {
+        return _counter;
+    }
+
+    public int count() {
+        return _count;
     }
 
     public String from() {

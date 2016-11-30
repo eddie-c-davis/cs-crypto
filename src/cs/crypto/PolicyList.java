@@ -22,7 +22,7 @@ public class PolicyList {
         _policies = new HashMap<>();
     }
 
-    public HashMap<String, Policy> map() {
+    public Map<String, Policy> map() {
         if (_policies.size() < 1) {
             read();
         }

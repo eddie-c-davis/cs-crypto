@@ -82,17 +82,17 @@ public class PeapodUser implements User, Serializable {
         _log.info(logMsg);
 
         // 1) Alice encrypts M with a secure symmetric encryption under randomly generated key k in Zp.
+        List<Attribute> allAttributes = new ArrayList<>();
 
         // 2) Alice then randomly picks a sub-key for each v-attribute in policy.
-        List<BigInteger> subKeys = getSubKeys();
-        BigInteger key = getSymKey(subKeys);
-
-        BigInteger prod = getKeyProduct(subKeys);
+        List<BigInteger> subKeys = getSubKeys(allAttributes);
+        BigInteger key = getSymKey(subKeys, allAttributes);
+        BigInteger prod = getKeyProduct(subKeys, allAttributes);
+        verifyKeys(subKeys);
         assert(prod.equals(key));
 
         // We will use AES as our symmetric encryption scheme.
         BigInteger cSym = AES.encrypt(m, key);
-        //cSym = cSym.mod(_prime);
         assert(m == AES.decrypt(cSym, key));
 
         // Now we ElGamal encrypt the the subkeys before depositing on the list server...
@@ -117,13 +117,11 @@ public class PeapodUser implements User, Serializable {
         _log.info(logMsg);
 
         Message encMsg = server.deposit(this, cSym, cList);
-        // TODO: Come back and fix this...
-        Cache.instance().put(String.format("message-%d-symkey", 1), key.toString());
 
         return encMsg;
     }
 
-    private List<BigInteger> getSubKeys() {
+    private List<BigInteger> getSubKeys(List<Attribute> attributes) {
         List<BigInteger> subKeys = new ArrayList<>(_policy.size());
 
         BigInteger one = BigInteger.ONE;
@@ -132,7 +130,19 @@ public class PeapodUser implements User, Serializable {
         // This number needs to be much smaller to avoid overflow...
         BigInteger max = _prime.divide(size);
 
-        for (Attribute attribute : _policy.attributes()) {
+        List<Attribute> policyAttributes = _policy.attributes();
+        List<Attribute> randomAttributes = AttributeList.get().random();
+
+        attributes.clear();
+        for (Attribute policyAttr : policyAttributes) {
+            attributes.add(policyAttr);
+        }
+
+        for (Attribute randomAttr : randomAttributes) {
+            attributes.add(randomAttr);
+        }
+
+        for (Attribute attribute : attributes) {
             BigInteger subKey;
             if (attribute.required()) {
                 // Randomly generate a sub-key < k
@@ -150,9 +160,7 @@ public class PeapodUser implements User, Serializable {
         return subKeys;
     }
 
-    private BigInteger getSymKey(List<BigInteger> subKeys) {
-        List<Attribute> attributes = _policy.attributes();
-
+    private BigInteger getSymKey(List<BigInteger> subKeys, List<Attribute> attributes) {
         BigInteger key = BigInteger.ONE;
         for (int i = 0; i < subKeys.size(); i++) {
             if (attributes.get(i).required()) {
@@ -163,9 +171,7 @@ public class PeapodUser implements User, Serializable {
         return key;
     }
 
-    private BigInteger getKeyProduct(List<BigInteger> subKeys) {
-        List<Attribute> attributes = _policy.attributes();
-
+    private BigInteger getKeyProduct(List<BigInteger> subKeys, List<Attribute> attributes) {
         BigInteger prod = BigInteger.ONE;
         for (int i = 0; i < subKeys.size(); i++) {
             if (!attributes.get(i).forbidden()) {
@@ -174,6 +180,29 @@ public class PeapodUser implements User, Serializable {
         }
 
         return prod;
+    }
+
+    private void verifyKeys(List<BigInteger> subKeys) {
+        Map<String, Policy> policyMap = PolicyList.get().map();
+        Map<String, String> cache = Cache.instance();
+
+        for (String userName : policyMap.keySet()) {
+            if (!getName().equals(userName)) {
+                Policy policy = policyMap.get(userName);
+                if (_policy.satisfies(policy)) {
+                    for (int i = 0; i < subKeys.size() && i < _policy.size(); i++) {
+                        BigInteger key = subKeys.get(i);
+                        String cacheKey = String.format("user-%s-message-%d-attr-%d",
+                                userName, Message.counter(), i + 1);
+                        if (!_policy.attributes().get(i).forbidden()) {
+                            cache.put(cacheKey, key.toString());
+                        } else {
+                            cache.remove(cacheKey);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public void send(User receiver, String message) {
@@ -211,10 +240,6 @@ public class PeapodUser implements User, Serializable {
     public void send(PeapodUser receiver, BigInteger m) {
         System.out.println(String.format("%s: Sending %s to %s.", _name, m.toString(), receiver.getName()));
 
-//        _prime = receiver.prime();
-//        _gen = receiver.generator();
-//        BigInteger kPub = receiver.publicKey();
-//
         BigInteger[] c = new BigInteger[] {BigInteger.ZERO}; //encrypt(m, _prime, _gen, kPub);
 
         receiver.receive(this, c);
@@ -225,17 +250,17 @@ public class PeapodUser implements User, Serializable {
     }
 
     public List<Message> receive(ListServer server) throws GeneralSecurityException {
+        Map<String, String> cache = Cache.instance();
         List<Message> encryptedMessages = server.receive(this);
         List<Message> decryptedMessages = new ArrayList<>(encryptedMessages.size());
 
         BigInteger zero = BigInteger.ZERO;
+        BigInteger one = BigInteger.ONE;
 
-        int k = 0;
         for (Message encMsg : encryptedMessages) {
             List<Pair<BigInteger>> cPairs = encMsg.cPairs();
             int nPairs = cPairs.size();
             List<BigInteger> cKeys = new ArrayList<>(nPairs);
-            k += 1;
 
             for (int i = 0; i < nPairs; i++) {
                 Pair<BigInteger> cPair = cPairs.get(i);
@@ -246,12 +271,19 @@ public class PeapodUser implements User, Serializable {
                 BigInteger sec = cA.modPow(x, _prime);
                 BigInteger inv = sec.modInverse(_prime);
                 BigInteger key = cB.multiply(inv).mod(_prime);
+
+                String cacheKey = String.format("user-%s-message-%d-attr-%d", _name, encMsg.count(), i + 1);
+                if (cache.containsKey(cacheKey)) {
+                    key = new BigInteger(cache.get(cacheKey));
+                } else {
+                    key = one;
+                }
+
                 cKeys.add(key);
             }
 
             // Multiply keys together...
             BigInteger key = BigMath.product(cKeys, _prime);
-            key = new BigInteger(Cache.instance().get(String.format("message-%d-symkey", k)));
 
             // If we did this right, prod should be the symmetric key.
             BigInteger encoded = zero;
